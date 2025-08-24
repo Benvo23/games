@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plane Maneuver - Hangar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Roboto+Condensed:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto Condensed', sans-serif;
+        }
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+        .plane-card {
+            @apply bg-gray-700 bg-opacity-80 border-2 border-gray-500 rounded-lg shadow-lg p-4 flex flex-col items-center justify-between transition-transform transform hover:scale-105 hover:border-cyan-400;
+        }
+        .action-button {
+             @apply mt-4 w-full px-4 py-2 text-white font-semibold rounded-xl shadow-lg transition-all duration-150 ease-in-out focus:outline-none focus:ring-4;
+        }
+        .buy-button, .select-button {
+            @apply bg-gradient-to-br from-sky-400 to-sky-600 border-b-4 border-sky-800 hover:from-sky-500 hover:to-sky-700 active:border-b-0 active:translate-y-1 focus:ring-sky-300;
+        }
+        .selected-button {
+            @apply bg-gradient-to-br from-cyan-500 to-teal-600 border-b-2 border-teal-800 cursor-not-allowed focus:ring-cyan-300;
+        }
+        .locked-display {
+             @apply mt-4 w-full px-4 py-2 bg-gray-800 text-gray-400 font-bold rounded-md text-center;
+        }
+        /* Notification Styling */
+        #notification-bar {
+            @apply fixed top-0 left-1/2 -translate-x-1/2 -translate-y-full w-full max-w-md p-4 rounded-b-lg text-white font-semibold text-center shadow-lg transition-transform duration-300 ease-out z-50;
+        }
+        #notification-bar.show {
+            @apply translate-y-0;
+        }
+    </style>
+</head>
+<body class="bg-gray-800">
+
+    <!-- Notification Bar -->
+    <div id="notification-bar"></div>
+
+    <!-- Hangar Container -->
+    <div id="hangar-container" class="relative min-h-screen w-full p-4 md:p-8 bg-cover bg-center" style="background-image: url('https://static1.simpleflyingimages.com/wordpress/wp-content/uploads/2024/04/shutterstock_2372183349-1.jpg');">
+
+        <!-- Header -->
+        <div class="relative z-10 flex justify-between items-center mb-8">
+            <h1 class="font-orbitron text-4xl md:text-5xl text-white" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.7);">
+                Hangar
+            </h1>
+            <div class="flex items-center gap-4">
+                 <!-- Coin Display -->
+                <div id="coin-display" class="px-6 py-2 bg-yellow-400 text-gray-800 font-bold rounded-lg shadow-md text-lg">
+                    <!-- Coins will be populated by JS -->
+                </div>
+                <button id="back-to-menu-btn" class="px-6 py-2 bg-red-600 text-white font-semibold rounded-lg shadow-md hover:bg-red-700 transition-colors">
+                    Back to Menu
+                </button>
+            </div>
+        </div>
+
+        <!-- Plane Selection Grid -->
+        <div id="plane-grid" class="relative z-10 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+
+            <!-- Planes will be populated by JS -->
+
+        </div>
+    </div>
+
+    <script>
+        // --- Game Data ---
+        const planeData = [
+            { id: 'sparrow', name: 'The Sparrow', price: 0, type: 'buyable', svg: '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" class="w-full h-32 mb-4"><g style="image-rendering: pixelated;"><rect x="2" y="12" width="28" height="8" fill="#EF4444"/><rect x="13" y="6" width="6" height="20" fill="#FFFFFF"/><rect x="11" y="24" width="10" height="4" fill="#EF4444"/><rect x="14" y="10" width="4" height="4" fill="#3B82F6"/><rect x="15" y="2" width="2" height="6" fill="#4B5563"/><rect x="12" y="4" width="8" height="2" fill="#4B5563"/></g></svg>' },
+            { id: 'vacayer', name: 'The Vacayer', price: 500, type: 'buyable', svg: '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" class="w-full h-32 mb-4"><g style="image-rendering: pixelated;"><rect x="0" y="14" width="32" height="6" fill="#3B82F6"/><rect x="14" y="8" width="4" height="18" fill="#FFFFFF"/><rect x="12" y="24" width="8" height="4" fill="#3B82F6"/><rect x="15" y="12" width="2" height="4" fill="#FFFFFF"/><rect x="6" y="12" width="4" height="8" fill="#4B5563"/><rect x="22" y="12" width="4" height="8" fill="#4B5563"/><rect x="7" y="10" width="2" height="4" fill="#9CA3AF"/><rect x="23" y="10" width="2" height="4" fill="#9CA3AF"/></g></svg>' },
+            { id: 'hawk', name: 'The Hawk', price: 1200, type: 'buyable', svg: '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" class="w-full h-32 mb-4"><g style="image-rendering: pixelated;"><path d="M16 4 L12 16 L12 26 L20 26 L20 16 Z" fill="#DC2626"/><path d="M12 16 L2 22 L2 24 L12 20 Z" fill="#DC2626"/><path d="M20 16 L30 22 L30 24 L20 20 Z" fill="#DC2626"/><path d="M14 26 L12 30 L20 30 L18 26 Z" fill="#DC2626"/><rect x="14" y="10" width="4" height="6" fill="#3B82F6"/></g></svg>' },
+            { id: 'tomcat', name: 'The Tomcat', price: 2500, type: 'buyable', svg: '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" class="w-full h-32 mb-4"><g style="image-rendering: pixelated;"><path d="M16 2 L13 12 L13 28 L19 28 L19 12 Z" fill="#D1D5DB"/><path d="M13 12 L4 20 L8 22 L13 16 Z" fill="#D1D5DB"/><path d="M19 12 L28 20 L24 22 L19 16 Z" fill="#D1D5DB"/><path d="M12 26 L10 30 L13 30 L13 26 Z" fill="#6B7280"/><path d="M20 26 L22 30 L19 30 L19 26 Z" fill="#6B7280"/><rect x="14" y="8" width="4" height="6" fill="#111827"/></g></svg>' },
+            { id: 'eagle', name: 'The Eagle', price: 4000, type: 'buyable', svg: '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" class="w-full h-32 mb-4"><g style="image-rendering: pixelated;"><path d="M16 8 L6 22 L26 22 Z" fill="#4B5563"/><path d="M16 2 L14 8 L14 28 L18 28 L18 8 Z" fill="#4B5563"/><path d="M15 26 L12 30 L20 30 L17 26 Z" fill="#1F2937"/><rect x="15" y="10" width="2" height="6" fill="#FBBF24"/></g></svg>' },
+            { id: 'raptor', name: 'The Raptor', price: 6500, type: 'buyable', svg: '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" class="w-full h-32 mb-4"><g style="image-rendering: pixelated;"><path d="M16 2 L14 8 L14 28 L18 28 L18 8 Z" fill="#9CA3AF"/><path d="M14 24 L2 22 L14 16 Z" fill="#9CA3AF"/><path d="M18 24 L30 22 L18 16 Z" fill="#9CA3AF"/><path d="M14 28 L12 31 L14 31 Z" fill="#4B5563"/><path d="M18 28 L20 31 L18 31 Z" fill="#4B5563"/><rect x="15" y="8" width="2" height="6" fill="#111827"/></g></svg>' },
+            { id: 'lightning', name: 'The Lightning', price: 10000, type: 'buyable', svg: '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" class="w-full h-32 mb-4"><g style="image-rendering: pixelated;"><path d="M16 2 L14 8 L13 14 L13 28 L19 28 L19 14 L18 8 Z" fill="#6B7280"/><path d="M13 15 L2 18 L8 24 L13 20 Z" fill="#6B7280"/><path d="M19 15 L30 18 L24 24 L19 20 Z" fill="#6B7280"/><path d="M13 28 L10 31 L13 31 Z" fill="#4B5563"/><path d="M19 28 L22 31 L19 31 Z" fill="#4B5563"/><rect x="14" y="7" width="4" height="6" fill="#111827"/></g></svg>' },
+            { id: 'nextgen', name: 'The NextGen', price: 15000, type: 'buyable', svg: '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" class="w-full h-32 mb-4"><g style="image-rendering: pixelated;"><path d="M16 2 L4 28 L12 26 L16 30 L20 26 L28 28 Z" fill="#9CA3AF"/><rect x="14" y="8" width="4" height="6" fill="#111827"/></g></svg>' },
+        ];
+
+        // --- Game State ---
+        let playerState = {
+            coins: 2000,
+            ownedPlanes: ['sparrow'],
+            selectedPlane: 'sparrow'
+        };
+
+        // --- DOM Elements ---
+        const coinDisplay = document.getElementById('coin-display');
+        const planeGrid = document.getElementById('plane-grid');
+        const notificationBar = document.getElementById('notification-bar');
+
+        // --- Save and Load Functions ---
+        function saveState() {
+            localStorage.setItem('planeManeuverSave', JSON.stringify(playerState));
+        }
+
+        function loadState() {
+            const savedState = localStorage.getItem('planeManeuverSave');
+            if (savedState) {
+                playerState = JSON.parse(savedState);
+            }
+        }
+
+        /**
+         * Renders all planes into the grid based on current state.
+         */
+        function renderPlanes() {
+            planeGrid.innerHTML = ''; // Clear existing grid
+            planeData.forEach(plane => {
+                const isOwned = playerState.ownedPlanes.includes(plane.id);
+                const isSelected = playerState.selectedPlane === plane.id;
+
+                let actionHtml;
+                if (isOwned) {
+                    if (isSelected) {
+                        actionHtml = `<button class="action-button selected-button" disabled>Selected</button>`;
+                    } else {
+                        actionHtml = `<button class="action-button select-button">Select</button>`;
+                    }
+                } else if (plane.type === 'buyable') {
+                    actionHtml = `<button class="action-button buy-button" data-price="${plane.price}">Buy</button>`;
+                } else {
+                    // This case is no longer used but kept for safety
+                    actionHtml = `<div class="locked-display">${plane.price}</div>`;
+                }
+
+                const priceText = isOwned ? 'OWNED' : `${plane.price} Coins`;
+                const priceColor = isOwned ? 'text-yellow-400' : 'text-yellow-400';
+                const borderClass = isSelected ? 'border-cyan-400' : '';
+
+                const planeCardHtml = `
+                    <div class="plane-card ${borderClass}" data-plane-id="${plane.id}">
+                        ${plane.svg}
+                        <h2 class="text-xl font-bold text-white">${plane.name}</h2>
+                        <p class="price-tag text-lg font-semibold ${priceColor}">${priceText}</p>
+                        ${actionHtml}
+                    </div>
+                `;
+                planeGrid.insertAdjacentHTML('beforeend', planeCardHtml);
+            });
+        }
+
+        function updateCoinDisplay() {
+            coinDisplay.textContent = `Coins: ${playerState.coins}`;
+        }
+
+        function showNotification(message, isSuccess) {
+            notificationBar.textContent = message;
+            notificationBar.className = `fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-md p-4 rounded-b-lg text-white font-semibold text-center shadow-lg transition-transform duration-300 ease-out z-50 ${isSuccess ? 'bg-green-500' : 'bg-red-500'}`;
+            requestAnimationFrame(() => notificationBar.classList.add('show'));
+            setTimeout(() => notificationBar.classList.remove('show'), 3000);
+        }
+
+        function handleGridClick(event) {
+            const button = event.target.closest('.action-button');
+            if (!button) return;
+
+            const planeCard = button.closest('.plane-card');
+            const planeId = planeCard.dataset.planeId;
+
+            if (button.classList.contains('buy-button')) {
+                const price = parseInt(button.dataset.price, 10);
+                if (playerState.coins >= price) {
+                    playerState.coins -= price;
+                    playerState.ownedPlanes.push(planeId);
+                    showNotification('Purchase successful, happy flying!', true);
+                    updateAndRender();
+                } else {
+                    showNotification("You don't have enough coins.", false);
+                }
+            } else if (button.classList.contains('select-button')) {
+                playerState.selectedPlane = planeId;
+                updateAndRender();
+            }
+        }
+
+        function updateAndRender() {
+            saveState(); // Save the state every time something changes
+            updateCoinDisplay();
+            renderPlanes();
+        }
+
+        // --- Initial Setup ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadState(); // Load saved data when the page opens
+            updateAndRender();
+        });
+
+        // --- Event Listeners ---
+        document.getElementById('back-to-menu-btn').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+
+        planeGrid.addEventListener('click', handleGridClick);
+
+    </script>
+
+</body>
+</html>
