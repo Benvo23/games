@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Naval Fleet Command - In-Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Black Ops One', cursive;
+            overflow: hidden;
+            background-color: #1a202c;
+        }
+        canvas#gameCanvas {
+            background: linear-gradient(to bottom, #001f3f, #003366);
+            cursor: crosshair;
+        }
+        #ui h1, #ui h2, #ui h3, #ui button {
+             text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+        }
+        .modal { background-color: rgba(0, 0, 0, 0.85); }
+        .missile-text { text-shadow: 0 0 10px #39ff14, 0 0 20px #39ff14; }
+        .torpedo-text { text-shadow: 0 0 10px #ff4500, 0 0 20px #ff4500; }
+        .airstrike-text { text-shadow: 0 0 10px #f0f8ff, 0 0 20px #f0f8ff; }
+        .bonds-text { color: #ffd700; text-shadow: 0 0 10px #ffd700, 0 0 20px #b8860b; }
+
+        /* Navy Style Buttons */
+        .btn { display: block; text-align: center; border-radius: 2px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 3px solid rgba(0,0,0,0.4); transition: all 0.1s ease-in-out; text-decoration: none; }
+        .btn:active { transform: translateY(2px); border-bottom-width: 1px; }
+        .btn-primary { background-color: #0A3D62; color: #E0E0E0; border-color: #072c47; }
+        .btn-primary:hover { background-color: #0c4a79; }
+        .btn-secondary { background-color: #4A5568; color: #E0E0E0; border-color: #2d3748; }
+        .btn-secondary:hover { background-color: #718096; }
+
+        /* Radar Styling */
+        #radar-container { position: absolute; top: 20px; right: 20px; width: 120px; height: 120px; background-color: rgba(0, 20, 0, 0.5); border-radius: 50%; border: 2px solid #00ff00; box-shadow: 0 0 15px #00ff00; overflow: hidden; }
+    </style>
+</head>
+<body class="flex items-center justify-center h-screen m-0">
+
+    <div id="game-container" class="relative w-full h-full sm:w-[480px] sm:h-[800px] max-w-full max-h-full bg-black rounded-lg shadow-2xl overflow-hidden border-4 border-gray-600">
+        <canvas id="gameCanvas"></canvas>
+        <div id="ui" class="absolute top-0 left-0 w-full p-4 text-center">
+            <div class="flex justify-between items-center text-gray-300">
+                 <button id="pauseButton" class="text-3xl font-bold hover:text-yellow-400 transition-colors">||</button>
+                <h2 class="text-2xl">Mission: <span id="mission-indicator">1</span></h2>
+                <h1 id="fleet-h1" class="text-3xl tracking-wider">Fleet: <span id="fleetSize">1</span></h1>
+            </div>
+            <div id="fleet-health-container" class="w-full max-w-md mx-auto mt-2 bg-gray-700 rounded-sm h-4 overflow-hidden border border-cyan-400">
+                <div id="fleet-health-bar" class="bg-cyan-400 h-full transition-all duration-100" style="width: 100%;"></div>
+            </div>
+             <h3 id="stage-indicator" class="text-xl text-yellow-400 mt-2">Stage: DEPLOYMENT</h3>
+            <div id="boss-health-container" class="hidden w-full max-w-md mx-auto mt-2 bg-gray-700 rounded-sm h-6 overflow-hidden border-2 border-red-500">
+                <div id="boss-health-bar" class="bg-red-500 h-full transition-all duration-300" style="width: 100%;"></div>
+            </div>
+             <p id="ability-status-airstrike" class="hidden text-gray-200 text-xl font-bold mt-2 airstrike-text">Airstrike Ready! (Press A)</p>
+             <p id="ability-status-torpedo" class="hidden text-orange-400 text-xl font-bold mt-2 torpedo-text">Torpedo Ready! (Press T)</p>
+             <p id="ability-status-missile" class="hidden text-lime-400 text-xl font-bold mt-2 missile-text">Missile Strike Ready! (Press M)</p>
+        </div>
+
+        <div id="radar-container" class="hidden"></div>
+
+        <div id="victory-banner" class="hidden absolute inset-0 flex items-center justify-center z-20">
+            <h2 id="victory-text" class="text-7xl font-bold text-yellow-400 text-center" style="text-shadow: 0 0 20px #000, 0 0 30px #000;"></h2>
+        </div>
+
+        <div id="pause-modal" class="hidden absolute inset-0 flex-col items-center justify-center p-8 modal z-30">
+             <div class="bg-gray-900 border-2 border-gray-500 p-6 rounded-sm max-w-md text-center">
+                <h2 class="text-5xl font-bold text-white mb-8">PAUSED</h2>
+                <div class="flex space-x-4">
+                    <button id="resumeButton" class="btn btn-primary font-bold py-3 px-8 text-2xl shadow-lg">
+                        Resume
+                    </button>
+                    <a href="index.html" id="pauseMainMenuButton" class="btn btn-secondary font-bold py-3 px-8 text-2xl shadow-lg">
+                        Main Menu
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div id="mission-transition-screen" class="hidden absolute inset-0 flex flex-col items-center justify-center modal z-10">
+            <h2 id="mission-complete-title" class="text-6xl font-bold mb-4">Mission Complete!</h2>
+            <p id="bonds-reward-text" class="text-2xl bonds-text font-bold"></p>
+        </div>
+
+        <div id="end-screen" class="hidden absolute inset-0 flex flex-col items-center justify-center modal z-10">
+            <h2 id="end-title" class="text-6xl font-bold mb-4">VICTORY</h2>
+            <p id="end-message" class="text-xl mb-4 text-center">Your final fleet was a force to be reckoned with.</p>
+            <p id="failure-text" class="hidden text-4xl text-red-500 font-bold mb-8" style="text-shadow: 2px 2px 4px #000;">You Failed</p>
+            <div class="flex space-x-4">
+                <button id="restartButton" class="btn btn-primary font-bold py-3 px-8 text-2xl shadow-lg">
+                    Replay
+                </button>
+                <a href="index.html" id="mainMenuButton" class="btn btn-secondary font-bold py-3 px-8 text-2xl shadow-lg">
+                    Main Menu
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const gameContainer = document.getElementById('game-container');
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const radarContainer = document.getElementById('radar-container');
+
+        const ui = {
+            main: document.getElementById('ui'),
+            fleetSize: document.getElementById('fleetSize'),
+            fleetH1: document.getElementById('fleet-h1'),
+            missionIndicator: document.getElementById('mission-indicator'),
+            stageIndicator: document.getElementById('stage-indicator'),
+            fleetHealthBar: document.getElementById('fleet-health-bar'),
+            endScreen: document.getElementById('end-screen'), missionTransitionScreen: document.getElementById('mission-transition-screen'),
+            restartButton: document.getElementById('restartButton'),
+            endTitle: document.getElementById('end-title'), endMessage: document.getElementById('end-message'),
+            failureText: document.getElementById('failure-text'),
+            missionCompleteTitle: document.getElementById('mission-complete-title'),
+            bossHealthContainer: document.getElementById('boss-health-container'), bossHealthBar: document.getElementById('boss-health-bar'),
+            abilityAirstrike: document.getElementById('ability-status-airstrike'),
+            abilityTorpedo: document.getElementById('ability-status-torpedo'),
+            abilityMissile: document.getElementById('ability-status-missile'),
+            bondsRewardText: document.getElementById('bonds-reward-text'),
+            pauseButton: document.getElementById('pauseButton'), pauseModal: document.getElementById('pause-modal'),
+            resumeButton: document.getElementById('resumeButton'),
+            victoryBanner: document.getElementById('victory-banner'),
+            victoryText: document.getElementById('victory-text'),
+        };
+
+        let state = {};
+        let warBonds = 0;
+
+        function resetState() {
+            if (state.fireIntervalId) clearInterval(state.fireIntervalId);
+            state = {
+                fleetSize: 1, currentMission: 1, gameActive: false, gamePaused: false,
+                levelStage: 'deployment',
+                oceanWaves: [], markers: [], abilityCrates: [], projectiles: [], enemyProjectiles: [], enemies: [], bosses: [], torpedoes: [], planes: [], bombs: [], missiles: [],
+                fleetHealth: 40, fleetMaxHealth: 40,
+                airstrikeCharges: 0, torpedoCharges: 0, missileCharges: 0,
+                fireIntervalId: null, MARKERS_PER_LEVEL: 6,
+                currentSkirmishWave: 0, totalSkirmishWaves: 3,
+                radarSweepAngle: 0,
+                formUpTimer: 0,
+                shieldActive: false, shieldTimer: 0,
+            };
+        }
+
+        const player = { x: 0, y: 0, width: 30, height: 80, targetX: 0, targetY: 0, speed: 0.1 };
+
+        class OceanWave {
+            constructor() { this.y = Math.random() * canvas.height; this.speed = Math.random() * 0.4 + 0.1; this.amplitude = Math.random() * 5 + 5; this.wavelength = Math.random() * 100 + 100; this.opacity = Math.random() * 0.1 + 0.05; }
+            update() { this.y += this.speed; if (this.y > canvas.height + 20) { this.y = -20; } }
+            draw() { ctx.beginPath(); ctx.moveTo(0, this.y); ctx.strokeStyle = `rgba(173, 216, 230, ${this.opacity})`; ctx.lineWidth = 1.5; for (let x = 0; x < canvas.width; x++) { const yOffset = Math.sin(x / this.wavelength * Math.PI * 2) * this.amplitude; ctx.lineTo(x, this.y + yOffset); } ctx.stroke(); }
+        }
+        class Marker { constructor(y) { this.width = 100; this.height = 60; this.y = y; this.speed = 2; this.isGood = Math.random() > 0.4; this.operation = this.isGood ? (Math.random() > 0.5 ? '+' : 'x') : (Math.random() > 0.5 ? '-' : '÷'); this.value = (this.operation === '+' || this.operation === '-') ? Math.floor(Math.random() * 5) + 2 : 2; this.x = Math.random() > 0.5 ? canvas.width / 4 - this.width / 2 : (canvas.width * 3) / 4 - this.width / 2; this.passed = false; } update() { this.y += this.speed; } draw() { const color = this.isGood ? '#4ade80' : '#f87171'; ctx.fillStyle = `rgba(${this.isGood ? '74, 222, 128' : '248, 113, 113'}, 0.3)`; ctx.strokeStyle = color; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(this.x, this.y, this.width, this.height, 8); ctx.fill(); ctx.stroke(); ctx.fillStyle = 'white'; ctx.font = '24px "Black Ops One"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(`${this.operation}${this.value}`, this.x + this.width / 2, this.y + this.height / 2); } }
+        class Projectile { constructor(x, y, damage = 10) { this.x = x; this.y = y; this.size = 4; this.speed = 12; this.damage = damage; } update() { this.y -= this.speed; } draw() { ctx.fillStyle = '#FFD700'; ctx.shadowColor = '#FFD700'; ctx.shadowBlur = 8; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; } }
+        class EnemyProjectile {
+            constructor(x, y, damage = 20) { this.x = x; this.y = y; this.speed = 5; this.size = 5; this.damage = damage; }
+            update() { this.y += this.speed; }
+            draw() { ctx.fillStyle = '#ff6347'; ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 10; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; }
+        }
+        class EnemyShip {
+            constructor(x, y) { this.x = x; this.y = y; this.width = 25; this.height = 50; this.speed = 1.5; this.maxHealth = 20 + (state.currentMission * 8) + (state.currentSkirmishWave * 3); this.health = this.maxHealth; this.fireCooldown = Math.random() * 80 + 80; }
+            update() { this.y += this.speed; this.fireCooldown--; if (this.fireCooldown <= 0) { state.enemyProjectiles.push(new EnemyProjectile(this.x + this.width / 2, this.y + this.height)); this.fireCooldown = 150; } }
+            draw() { ctx.fillStyle = '#8492a6'; ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(this.x + this.width, this.y); ctx.lineTo(this.x + this.width / 2, this.y + this.height); ctx.closePath(); ctx.fill(); if (this.health < this.maxHealth) { const barY = this.y - 10; ctx.fillStyle = '#555'; ctx.fillRect(this.x - 2, barY, this.width + 4, 6); ctx.fillStyle = '#f87171'; ctx.fillRect(this.x - 2, barY, (this.width + 4) * (this.health / this.maxHealth), 6); } }
+            takeDamage(amount) { this.health -= amount; return this.health <= 0; }
+        }
+        class Torpedo { constructor(x, y) { this.x = x; this.y = y; this.width = 8; this.height = 30; this.speed = 8; } update() { this.y -= this.speed; } draw() { ctx.fillStyle = '#4a5568'; ctx.strokeStyle = '#ff4500'; ctx.lineWidth = 2; ctx.shadowColor = '#ff4500'; ctx.shadowBlur = 10; ctx.beginPath(); ctx.roundRect(this.x - this.width / 2, this.y, this.width, this.height, 4); ctx.fill(); ctx.stroke(); ctx.shadowBlur = 0; } }
+        class NavalPlane { constructor() { this.y = Math.random() * 100 + 100; this.speed = 5; this.x = -50; this.width = 60; this.height = 20; this.bombsToDrop = 3; this.dropCooldown = 20; } update() { this.x += this.speed; this.dropCooldown--; if (this.dropCooldown <= 0 && this.bombsToDrop > 0) { state.bombs.push(new Bomb(this.x, this.y)); this.bombsToDrop--; this.dropCooldown = 20; } } draw() { ctx.fillStyle = '#4A5568'; ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(this.x - this.width / 2, this.y + this.height / 2); ctx.lineTo(this.x, this.y - this.height / 2); ctx.lineTo(this.x + this.width / 2, this.y + this.height/2); ctx.closePath(); ctx.fill(); } }
+        class Bomb { constructor(x,y) { this.x=x; this.y=y; this.size=6; this.speed=4; } update() { this.y += this.speed; } draw() { ctx.fillStyle='#1a202c'; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill(); } }
+        class Missile {
+            constructor(x, y) { this.x = x; this.y = y; this.width = 6; this.height = 25; this.speed = 20; this.damage = 500; this.trail = []; }
+            update() { this.y -= this.speed; this.trail.push({x: this.x, y: this.y, size: 4}); if(this.trail.length > 10) this.trail.shift(); }
+            draw() { this.trail.forEach((p, i) => { ctx.fillStyle = `rgba(173, 255, 47, ${i / this.trail.length * 0.5})`; ctx.beginPath(); ctx.arc(p.x, p.y + this.height / 2, p.size * (i/this.trail.length), 0, Math.PI*2); ctx.fill(); }); ctx.fillStyle = '#E0E0E0'; ctx.strokeStyle = '#39ff14'; ctx.lineWidth = 2; ctx.shadowColor = '#39ff14'; ctx.shadowBlur = 15; ctx.fillRect(this.x - this.width/2, this.y, this.width, this.height); ctx.strokeRect(this.x - this.width/2, this.y, this.width, this.height); ctx.shadowBlur = 0; }
+        }
+        class AbilityCrate {
+            constructor(y, type) { this.width = 60; this.height = 60; this.y = y; this.x = canvas.width / 2 - this.width / 2; this.speed = 2; this.passed = false; this.type = type; }
+            update() { this.y += this.speed; }
+            draw() {
+                ctx.fillStyle = '#8B4513'; ctx.strokeStyle = '#D2691E'; ctx.lineWidth = 4;
+                ctx.fillRect(this.x, this.y, this.width, this.height); ctx.strokeRect(this.x, this.y, this.width, this.height);
+                ctx.fillStyle = 'white'; ctx.font = '11px "Black Ops One"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                const textMapping = {
+                    'torpedoes': ['TORPEDO', ''], 'missileStrike': ['MISSILE', 'STRIKE'],
+                    'airstrike': ['AIRSTRIKE', ''], 'shield': ['SUPER', 'HULL']
+                };
+                const text = textMapping[this.type] || ['UNKNOWN', ''];
+                ctx.fillText(text[0], this.x + this.width / 2, this.y + this.height / 2 - 8);
+                ctx.fillText(text[1], this.x + this.width / 2, this.y + this.height / 2 + 8);
+            }
+        }
+        class EnemyWarship {
+            constructor(x, y, width, height, health, name) { this.x = x; this.y = y; this.width = width; this.height = height; this.maxHealth = health; this.health = health; this.speed = 0.05; this.hitTimer = 0; this.targetY = 100; this.name = name; this.fireCooldown = 120; this.damageResistance = 0.4; }
+            update() { this.y += (this.targetY - this.y) * this.speed; if (this.hitTimer > 0) this.hitTimer--; this.fireCooldown--; if (this.fireCooldown <= 0) { this.shoot(); this.fireCooldown = Math.max(45, 120 - state.currentMission * 10); } }
+            shoot() { const turrets = [-this.width / 4, this.width / 4]; turrets.forEach(offset => state.enemyProjectiles.push(new EnemyProjectile(this.x + this.width / 2 + offset, this.y + this.height * 0.7, 25))); }
+            draw() { const hullColor = this.hitTimer > 0 ? '#A0AEC0' : '#4A5568'; ctx.fillStyle = hullColor; ctx.beginPath(); ctx.moveTo(this.x, this.y + this.height * 0.4); ctx.lineTo(this.x + this.width, this.y + this.height * 0.4); ctx.lineTo(this.x + this.width * 0.8, this.y + this.height); ctx.lineTo(this.x + this.width * 0.2, this.y + this.height); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#718096'; ctx.fillRect(this.x + this.width * 0.3, this.y, this.width * 0.4, this.height * 0.7); }
+            takeDamage(amount) {
+                const actualDamage = amount * this.damageResistance;
+                this.health -= actualDamage;
+                this.hitTimer = 5;
+                return this.health <= 0;
+            }
+        }
+        class DreadnoughtBoss extends EnemyWarship {
+            constructor(x, y, width, height, health) {
+                super(x, y, width, height, health, "The 'Juggernaut'");
+                this.damageResistance = 0.25;
+            }
+            shoot() { const spread = 2 + Math.floor((state.currentMission - 1) / 2); for (let i = -spread; i <= spread; i++) { state.enemyProjectiles.push(new EnemyProjectile(this.x + this.width / 2 + i * 20, this.y + this.height * 0.7, 30)); } }
+        }
+        class CarrierBoss extends EnemyWarship {
+            constructor(x, y, width, height, health) { super(x, y, width, height, health, "The 'Hornet'"); }
+            update() { super.update(); this.spawnCooldown--; if(this.spawnCooldown <= 0) { state.planes.push(new NavalPlane()); this.spawnCooldown = Math.max(120, 300 - state.currentMission * 20); } }
+        }
+
+        function init() {
+            resetState();
+            resizeCanvas();
+            for (let i = 0; i < 20; i++) state.oceanWaves.push(new OceanWave());
+            const savedAbilities = localStorage.getItem('navalFleetCommandAbilities');
+            const preBoughtAbilities = savedAbilities ? JSON.parse(savedAbilities) : [];
+            preBoughtAbilities.forEach(ability => {
+                if (ability === 'airstrike') state.airstrikeCharges = 1;
+                if (ability === 'torpedoes') state.torpedoCharges = 1;
+                if (ability === 'missileStrike') state.missileCharges = 1;
+                if (ability === 'shield') {
+                    state.shieldActive = true;
+                    state.shieldTimer = 600; // 10 seconds
+                }
+            });
+            localStorage.removeItem('navalFleetCommandAbilities');
+            setupMission(state.currentMission, true);
+        }
+
+        function startGame() {
+            init(); state.gameActive = true;
+            ui.main.classList.remove('hidden');
+            ui.fleetSize.textContent = state.fleetSize; ui.missionIndicator.textContent = state.currentMission;
+            updateAirstrikeStatusUI(); updateTorpedoStatusUI(); updateMissileStatusUI(); updateFleetHealthBar();
+            gameLoop();
+        }
+
+        function setupMission(mission, isFirstSetup = false) {
+            state.levelStage = 'deployment'; ui.stageIndicator.textContent = 'Stage: DEPLOYMENT'; radarContainer.classList.add('hidden');
+            state.markers = []; state.abilityCrates = []; state.projectiles = []; state.enemyProjectiles = []; state.enemies = []; state.bosses = [];
+
+            const availableAbilities = ['torpedoes'];
+            if (mission >= 2) availableAbilities.push('airstrike');
+            if (mission >= 3) availableAbilities.push('missileStrike');
+            if (mission >= 4) availableAbilities.push('shield');
+            const chosenAbility = availableAbilities[Math.floor(Math.random() * availableAbilities.length)];
+
+            if (!isFirstSetup) { player.x = canvas.width / 2; player.targetX = player.x; player.y = canvas.height - 150; player.targetY = player.y; }
+            for (let i = 0; i < state.MARKERS_PER_LEVEL; i++) {
+                const yPos = -i * 300 - 400;
+                if (i === 4) {
+                     state.abilityCrates.push(new AbilityCrate(yPos, chosenAbility));
+                } else {
+                    const marker1 = new Marker(yPos);
+                    const marker2 = new Marker(yPos);
+                    marker2.x = marker1.x > canvas.width / 2 ? canvas.width / 4 - marker2.width / 2 : (canvas.width * 3) / 4 - marker2.width / 2;
+                    state.markers.push(marker1, marker2);
+                }
+            }
+        }
+
+        function startFormation() {
+            state.levelStage = 'forming_up';
+            ui.stageIndicator.textContent = 'Stage: FORMATION';
+            state.formUpTimer = 120;
+            state.markers = [];
+            state.abilityCrates = [];
+        }
+
+        function spawnSkirmishWave() {
+            ui.stageIndicator.textContent = `Stage: SKIRMISH - Wave ${state.currentSkirmishWave}/${state.totalSkirmishWaves}`;
+            const enemiesInWave = 3 + state.currentSkirmishWave + state.currentMission;
+            for (let i = 0; i < enemiesInWave; i++) { setTimeout(() => { if (state.levelStage === 'skirmish') { state.enemies.push(new EnemyShip(Math.random() * (canvas.width - 50) + 25, -50)); } }, i * 600); }
+        }
+
+        function startSkirmish() {
+            radarContainer.classList.remove('hidden');
+            ui.stageIndicator.textContent = 'Stage: ENEMY INBOUND';
+            setTimeout(() => {
+                if(state.levelStage !== 'skirmish' && state.levelStage !== 'engagement') return;
+                state.currentSkirmishWave = 1;
+                spawnSkirmishWave();
+            }, 10000);
+
+            const fireInterval = Math.max(50, 450 - (state.fleetSize * 3));
+            state.fireIntervalId = setInterval(() => {
+                if (state.gameActive && !state.gamePaused && (state.levelStage === 'skirmish' || state.levelStage === 'engagement')) {
+                    state.projectiles.push(new Projectile(player.x, player.y, 10));
+                    const shipsToFire = Math.min(state.fleetSize - 1, 40);
+                    for (let i = 1; i <= shipsToFire; i++) {
+                        const row = Math.ceil(i / 2); const yOffset = row * 50; const xOffset = row * 35; const side = (i % 2 === 0) ? 1 : -1; const x = player.x + (xOffset * side); const y = player.y + 40 + yOffset;
+                        state.projectiles.push(new Projectile(x, y - 15, 2));
+                    }
+                }
+            }, fireInterval);
+        }
+
+        function startBossFight() {
+            state.levelStage = 'engagement'; ui.stageIndicator.textContent = 'Stage: ENGAGEMENT'; state.enemies = [];
+            let bossHealth = Math.max(1000, state.fleetSize * 30) * (1 + (state.currentMission - 1) * 0.8);
+            switch (state.currentMission) {
+                case 1: state.bosses.push(new EnemyWarship(canvas.width / 2 - 75, -200, 150, 100, bossHealth, "The 'Viper'")); break;
+                case 2: state.bosses.push(new CarrierBoss(canvas.width/2 - 90, -200, 180, 120, bossHealth * 1.2, "The 'Nest'")); break;
+                default: state.bosses.push(new DreadnoughtBoss(canvas.width/2-100, -200, 200, 130, bossHealth * 1.5, "The 'Leviathan'")); break;
+            }
+            ui.bossHealthContainer.classList.remove('hidden'); updateBossHealthBar();
+        }
+
+        function endGame(win) {
+            state.gameActive = false;
+            if (state.fireIntervalId) clearInterval(state.fireIntervalId);
+            radarContainer.classList.add('hidden');
+            ui.endScreen.classList.remove('hidden');
+
+            if (win) {
+                ui.endTitle.textContent = "VICTORY AT SEA!";
+                ui.endMessage.textContent = `Your final fleet size: ${state.fleetSize}.`;
+                ui.restartButton.textContent = 'Replay';
+                ui.failureText.classList.add('hidden');
+            } else {
+                ui.endTitle.textContent = "YOU GOT DESTROYED";
+                ui.endMessage.textContent = `You were sunk during Mission ${state.currentMission}.`;
+                ui.restartButton.textContent = 'Try Again';
+                ui.failureText.classList.remove('hidden');
+            }
+        }
+
+        function showVictoryAndAdvance() {
+             ui.victoryText.textContent = `VICTORY!`; ui.victoryBanner.classList.remove('hidden');
+             setTimeout(() => {
+                ui.victoryBanner.classList.add('hidden');
+                if (state.fireIntervalId) clearInterval(state.fireIntervalId); state.fireIntervalId = null;
+                const savedBonds = localStorage.getItem('navalFleetCommandBonds');
+                warBonds = savedBonds ? parseInt(savedBonds, 10) : 0;
+                warBonds += 25 * state.currentMission; saveBonds();
+                state.currentMission++;
+                state.gameActive = false;
+                ui.missionCompleteTitle.textContent = `Mission ${state.currentMission - 1} Complete!`; ui.bondsRewardText.textContent = `+${25 * (state.currentMission-1)} War Bonds!`;
+                ui.missionTransitionScreen.classList.remove('hidden'); ui.bossHealthContainer.classList.add('hidden'); radarContainer.classList.add('hidden');
+                setTimeout(() => {
+                    ui.missionTransitionScreen.classList.add('hidden'); ui.missionIndicator.textContent = state.currentMission;
+                    setupMission(state.currentMission); state.gameActive = true; gameLoop();
+                }, 2500);
+            }, 2500);
+        }
+
+        function update() {
+            if (!state.gameActive || state.gamePaused) return;
+            state.oceanWaves.forEach(w => w.update());
+            player.x += (player.targetX - player.x) * player.speed;
+            player.y += (player.targetY - player.y) * player.speed;
+
+            updateFleetUI();
+
+            state.radarSweepAngle += 0.04;
+            if (state.radarSweepAngle > Math.PI * 2) { state.radarSweepAngle = 0; }
+            if (state.shieldActive) {
+                state.shieldTimer--;
+                if (state.shieldTimer <= 0) { state.shieldActive = false; }
+            }
+
+            switch (state.levelStage) {
+                case 'deployment':
+                    state.markers.forEach((marker, index) => {
+                        marker.update();
+                        if (!marker.passed && player.x > marker.x - player.width / 2 && player.x < marker.x + marker.width + player.width / 2 && player.y < marker.y + marker.height) {
+                            marker.passed = true;
+                            const pairIndex = index % 2 === 0 ? index + 1 : index - 1;
+                            if (state.markers[pairIndex]) state.markers[pairIndex].passed = true;
+                            switch (marker.operation) {
+                                case '+': state.fleetSize += marker.value; break;
+                                case '-': state.fleetSize -= marker.value; break;
+                                case 'x': state.fleetSize = Math.floor(state.fleetSize * marker.value); break;
+                                case '÷': state.fleetSize = Math.ceil(state.fleetSize / marker.value); break;
+                            }
+                            if (state.fleetSize < 1) state.fleetSize = 1;
+                        }
+                    });
+                    state.abilityCrates.forEach(crate => {
+                        crate.update();
+                        if (!crate.passed && player.x > crate.x - crate.width / 2 && player.x < crate.x + crate.width / 2 && player.y < crate.y + crate.height) {
+                            crate.passed = true;
+                            if (crate.type === 'airstrike') { state.airstrikeCharges++; updateAirstrikeStatusUI(); }
+                            else if (crate.type === 'torpedoes') { state.torpedoCharges++; updateTorpedoStatusUI(); }
+                            else if (crate.type === 'missileStrike') { state.missileCharges++; updateMissileStatusUI(); }
+                            else if (crate.type === 'shield') { state.shieldActive = true; state.shieldTimer = 600; }
+                        }
+                    });
+                    const allDeploymentObjects = [...state.markers, ...state.abilityCrates];
+                    if (allDeploymentObjects.every(obj => obj.passed || obj.y > canvas.height)) {
+                        startFormation();
+                    }
+                    break;
+                case 'forming_up':
+                    state.formUpTimer--;
+                    if (state.formUpTimer <= 0) {
+                        state.levelStage = 'skirmish';
+                        startSkirmish();
+                    }
+                    break;
+                case 'skirmish':
+                    if (state.enemies.every(e => e.y > canvas.height || e.health <= 0)) {
+                        state.enemies = state.enemies.filter(e => e.health > 0);
+                    }
+                    if (state.enemies.length === 0 && state.gameActive && state.currentSkirmishWave > 0) {
+                        state.currentSkirmishWave++;
+                        if (state.currentSkirmishWave > state.totalSkirmishWaves) {
+                            startBossFight();
+                        } else {
+                            spawnSkirmishWave();
+                        }
+                    }
+                    break;
+                case 'engagement':
+                    if (state.bosses.every(b => b.health <= 0)) {
+                        state.bosses = [];
+                    }
+                    updateBossHealthBar();
+                    if (state.bosses.length === 0 && state.gameActive) {
+                        state.gameActive = false;
+                        showVictoryAndAdvance();
+                    }
+                    break;
+            }
+
+            if (state.levelStage === 'skirmish' || state.levelStage === 'engagement') {
+                state.projectiles.forEach((p, pIndex) => { p.update(); let hit = false; state.bosses.forEach(b => { if (!hit && p.x > b.x && p.x < b.x + b.width && p.y > b.y && p.y < b.y + b.height) { b.takeDamage(p.damage); hit = true; } }); state.enemies.forEach((e, eIndex) => { if (!hit && p.x > e.x && p.x < e.x + e.width && p.y > e.y && p.y < e.y + e.height) { if (e.takeDamage(p.damage)) { state.enemies.splice(eIndex, 1); } hit = true; } }); if (hit || p.y < 0) state.projectiles.splice(pIndex, 1); });
+                state.missiles.forEach((m, mIndex) => { m.update(); let hit = false; state.bosses.forEach(b => { if (!hit && m.x > b.x && m.x < b.x + b.width && m.y > b.y && m.y < b.y + b.height) { b.takeDamage(m.damage); hit = true; } }); if (hit || m.y < 0) state.missiles.splice(mIndex, 1); });
+                state.torpedoes.forEach((t, tIndex) => { t.update(); let hit = false; state.bosses.forEach(b => { if (!hit && t.x > b.x && t.x < b.x + b.width && t.y > b.y && t.y < b.y + b.height) { b.takeDamage(b.maxHealth * 0.25); hit = true; } }); if (hit || t.y < 0) state.torpedoes.splice(tIndex, 1); });
+                state.bombs.forEach((bomb, bombIndex) => { bomb.update(); let hit = false; state.bosses.forEach(b => { if (!hit && bomb.x > b.x && bomb.x < b.x + b.width && bomb.y > b.y && bomb.y < b.y + b.height) { b.takeDamage(100); hit = true; } }); state.enemies.forEach((e, eIndex) => { if(!hit && bomb.x > e.x && bomb.x < e.x+e.width && bomb.y > e.y && bomb.y < e.y+e.height){ if (e.takeDamage(100)) { state.enemies.splice(eIndex, 1); } hit = true; } }); if (hit || bomb.y > canvas.height) state.bombs.splice(bombIndex, 1); });
+                state.enemies.forEach((e, eIndex) => { e.update(); if (e.y > canvas.height) { state.enemies.splice(eIndex, 1); } });
+                if (!state.shieldActive) {
+                    state.enemyProjectiles.forEach((p, pIndex) => {
+                        p.update();
+                        if (Math.hypot(player.x - p.x, (player.y + player.height / 2) - p.y) < player.width / 2 + p.size) {
+                            state.fleetHealth -= p.damage;
+                            updateFleetHealthBar();
+                            if (state.fleetHealth <= 0) {
+                                state.fleetSize--;
+                                if (state.fleetSize > 0) {
+                                    state.fleetHealth = state.fleetMaxHealth;
+                                    updateFleetHealthBar();
+                                } else {
+                                    if (state.gameActive) endGame(false);
+                                }
+                            }
+                            state.enemyProjectiles.splice(pIndex, 1);
+                        } else if (p.y > canvas.height) {
+                            state.enemyProjectiles.splice(pIndex, 1);
+                        }
+                    });
+                }
+                state.bosses.forEach(b => b.update());
+                state.planes.forEach((p, i) => { p.update(); if (p.x > canvas.width + p.width) state.planes.splice(i, 1); });
+            }
+        }
+
+        function drawRadar() {
+            const radarSize = 120;
+            const radarX = canvas.width - radarSize / 2 - 10;
+            const radarY = radarSize / 2 + 10;
+            const radarRadius = radarSize / 2 - 5;
+            const radarRange = canvas.height / 1.5;
+
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(radarX, radarY, radarRadius, 0, Math.PI * 2);
+            ctx.clip();
+
+            ctx.fillStyle = "rgba(0, 20, 0, 0.75)";
+            ctx.fillRect(radarX - radarRadius, radarY - radarRadius, radarRadius * 2, radarRadius * 2);
+
+            ctx.strokeStyle = "rgba(0, 255, 0, 0.2)";
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(radarX - radarRadius, radarY);
+            ctx.lineTo(radarX + radarRadius, radarY);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(radarX, radarY - radarRadius);
+            ctx.lineTo(radarX, radarY + radarRadius);
+            ctx.stroke();
+
+            const sweepGradient = ctx.createRadialGradient(radarX, radarY, 0, radarX, radarY, radarRadius);
+            sweepGradient.addColorStop(0, 'rgba(0, 255, 0, 0.3)');
+            sweepGradient.addColorStop(0.9, 'rgba(0, 255, 0, 0.1)');
+            sweepGradient.addColorStop(1, 'rgba(0, 255, 0, 0)');
+            ctx.fillStyle = sweepGradient;
+            ctx.beginPath();
+            ctx.moveTo(radarX, radarY);
+            ctx.arc(radarX, radarY, radarRadius, state.radarSweepAngle - Math.PI / 2, state.radarSweepAngle);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = '#39ff14';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(radarX, radarY);
+            ctx.lineTo(radarX + radarRadius * Math.cos(state.radarSweepAngle), radarY + radarRadius * Math.sin(state.radarSweepAngle));
+            ctx.stroke();
+
+            ctx.restore();
+
+            ctx.strokeStyle = "rgba(0, 255, 0, 0.7)";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(radarX, radarY, radarRadius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            const entities = [...state.enemies, ...state.bosses];
+            entities.forEach(e => {
+                const dx = e.x + e.width / 2 - player.x;
+                const dy = e.y + e.height / 2 - player.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist < radarRange) {
+                    const blipX = radarX + (dx / radarRange) * radarRadius;
+                    const blipY = radarY + (dy / radarRange) * radarRadius;
+                    const isBoss = e instanceof EnemyWarship;
+                    const angleToBlip = (Math.atan2(blipY - radarY, blipX - radarX) + Math.PI * 2) % (Math.PI * 2);
+                    let angleDifference = (state.radarSweepAngle - angleToBlip + Math.PI * 2) % (Math.PI * 2);
+                    const brightness = Math.max(0.4, 1 - (angleDifference / (Math.PI / 2)));
+                    ctx.fillStyle = isBoss ? `rgba(255, 0, 255, ${brightness})` : `rgba(255, 68, 68, ${brightness})`;
+                    ctx.beginPath();
+                    ctx.arc(blipX, blipY, isBoss ? 4 : 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+
+            ctx.fillStyle = "#00ffff";
+            ctx.beginPath();
+            ctx.arc(radarX, radarY, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawPlayerAndFleet() {
+            const hullColor = state.shieldActive ? '#00BFFF' : '#A0AEC0';
+            const detailsColor = state.shieldActive ? '#1E90FF' : '#718096';
+
+            ctx.fillStyle = hullColor;
+            ctx.beginPath();
+            ctx.moveTo(player.x, player.y);
+            ctx.lineTo(player.x - player.width / 2, player.y + player.height * 0.8);
+            ctx.lineTo(player.x + player.width / 2, player.y + player.height * 0.8);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillRect(player.x - player.width / 2, player.y + player.height * 0.8, player.width, player.height * 0.2);
+            ctx.fillStyle = detailsColor;
+            ctx.fillRect(player.x - player.width * 0.3, player.y + player.height * 0.3, player.width * 0.6, player.height * 0.4);
+
+            if (state.levelStage !== 'deployment') {
+                let opacity = 1.0;
+                if (state.levelStage === 'forming_up') {
+                    opacity = Math.max(0, 1.0 - (state.formUpTimer / 120));
+                }
+
+                const shipsToDraw = Math.min(state.fleetSize - 1, 40);
+                for (let i = 1; i <= shipsToDraw; i++) {
+                    const row = Math.ceil(i / 2);
+                    const yOffset = row * 50;
+                    const xOffset = row * 35;
+                    const side = (i % 2 === 0) ? 1 : -1;
+                    const x = player.x + (xOffset * side);
+                    const y = player.y + 40 + yOffset;
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.fillStyle = state.shieldActive ? `rgba(0, 191, 255, ${0.7 * opacity})` : `rgba(160, 174, 192, ${0.7 * opacity})`;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -15);
+                    ctx.lineTo(-8, 10);
+                    ctx.lineTo(8, 10);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                }
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); state.oceanWaves.forEach(w => w.draw());
+            if (!state.gameActive) return;
+            if (state.gamePaused) { ctx.fillStyle = "rgba(0, 0, 0, 0.5)"; ctx.fillRect(0, 0, canvas.width, canvas.height); return; }
+            state.markers.forEach(m => m.draw()); state.abilityCrates.forEach(c => c.draw()); state.projectiles.forEach(p => p.draw());
+            state.missiles.forEach(m => m.draw()); state.torpedoes.forEach(t => t.draw()); state.enemies.forEach(e => e.draw()); state.enemyProjectiles.forEach(p => p.draw());
+            state.bosses.forEach(b => b.draw()); state.planes.forEach(p => p.draw()); state.bombs.forEach(b => b.draw());
+            drawPlayerAndFleet();
+            if ((state.levelStage === 'skirmish' || state.levelStage === 'engagement') && state.gameActive) { drawRadar(); }
+        }
+
+        function updateFleetUI() {
+            ui.fleetSize.textContent = state.fleetSize;
+            if (state.fleetSize < 5) {
+                ui.fleetH1.classList.add('text-red-500', 'animate-pulse');
+            } else {
+                ui.fleetH1.classList.remove('text-red-500', 'animate-pulse');
+            }
+        }
+
+        function saveBonds() { localStorage.setItem('navalFleetCommandBonds', warBonds); }
+        function updateFleetHealthBar() { const percentage = (state.fleetHealth / state.fleetMaxHealth) * 100; ui.fleetHealthBar.style.width = `${percentage}%`; }
+        function updateBossHealthBar() { if (state.bosses.length === 0) { ui.bossHealthContainer.classList.add('hidden'); return; } ui.bossHealthContainer.classList.remove('hidden'); const percentage = (state.bosses[0].health / state.bosses[0].maxHealth) * 100; ui.bossHealthBar.style.width = `${percentage}%`; }
+        function updateAirstrikeStatusUI() { if (state.airstrikeCharges > 0) { ui.abilityAirstrike.textContent = `Airstrike (x${state.airstrikeCharges}) Ready! (Press A)`; ui.abilityAirstrike.classList.remove('hidden'); } else { ui.abilityAirstrike.classList.add('hidden'); } }
+        function updateTorpedoStatusUI() { if (state.torpedoCharges > 0) { ui.abilityTorpedo.textContent = `Torpedo (x${state.torpedoCharges}) Ready! (Press T)`; ui.abilityTorpedo.classList.remove('hidden'); } else { ui.abilityTorpedo.classList.add('hidden'); } }
+        function updateMissileStatusUI() { if (state.missileCharges > 0) { ui.abilityMissile.textContent = `Missile (x${state.missileCharges}) Ready! (Press M)`; ui.abilityMissile.classList.remove('hidden'); } else { ui.abilityMissile.classList.add('hidden'); } }
+
+        function gameLoop() { if (!state.gameActive || state.gamePaused) return; update(); draw(); requestAnimationFrame(gameLoop); }
+
+        function resizeCanvas() { canvas.width = gameContainer.clientWidth; canvas.height = gameContainer.clientHeight; player.y = canvas.height - 150; player.x = canvas.width / 2; player.targetX = player.x; player.targetY = player.y; }
+        window.addEventListener('resize', resizeCanvas);
+        canvas.addEventListener('mousemove', (e) => { const rect = canvas.getBoundingClientRect(); player.targetX = e.clientX - rect.left; player.targetY = e.clientY - rect.top; });
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); const rect = canvas.getBoundingClientRect(); player.targetX = e.touches[0].clientX - rect.left; player.targetY = e.touches[0].clientY - rect.top; }, { passive: false });
+
+        ui.restartButton.addEventListener('click', startGame);
+        ui.pauseButton.addEventListener('click', () => { state.gamePaused = true; ui.pauseModal.classList.remove('hidden'); });
+        ui.resumeButton.addEventListener('click', () => { state.gamePaused = false; ui.pauseModal.classList.add('hidden'); gameLoop(); });
+
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if (!state.gameActive || state.gamePaused) return;
+            if (key === 'a' && state.airstrikeCharges > 0 && (state.levelStage === 'skirmish' || state.levelStage === 'engagement')) { state.airstrikeCharges--; for(let i=0; i<3; i++) { setTimeout(() => state.planes.push(new NavalPlane()), i * 300); } updateAirstrikeStatusUI(); }
+            if (key === 't' && state.torpedoCharges > 0 && (state.levelStage === 'skirmish' || state.levelStage === 'engagement')) { state.torpedoCharges--; state.torpedoes.push(new Torpedo(player.x - 15, player.y)); state.torpedoes.push(new Torpedo(player.x + 15, player.y)); updateTorpedoStatusUI(); }
+            if (key === 'm' && state.missileCharges > 0 && (state.levelStage === 'skirmish' || state.levelStage === 'engagement')) { state.missileCharges--; state.missiles.push(new Missile(player.x, player.y)); updateMissileStatusUI(); }
+        });
+
+        document.addEventListener('DOMContentLoaded', startGame);
+    </script>
+</body>
+</html>
