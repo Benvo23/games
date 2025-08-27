@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Futuristic Snake</title>
+    <!-- Load Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load the Inter font for a modern look -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap">
+    <style>
+        /* Custom styles for the glow effect */
+        .neon-glow {
+            text-shadow: 0 0 5px #0ff, 0 0 10px #0ff, 0 0 20px #0ff, 0 0 30px #0ff, 0 0 40px #0ff;
+        }
+        .container-glow {
+            box-shadow: 0 0 10px #0ff, 0 0 20px #0ff, inset 0 0 10px #0ff;
+        }
+        .btn-glow {
+            box-shadow: 0 0 5px #ff007b, 0 0 10px #ff007b, 0 0 20px #ff007b;
+            transition: transform 0.2s ease-in-out;
+        }
+        .btn-glow:hover {
+            box-shadow: 0 0 10px #ff007b, 0 0 20px #ff007b, 0 0 40px #ff007b;
+            transform: translateY(-2px);
+        }
+        /* Style for the background image */
+        body {
+            background-image: url('https://i.redd.it/0l8pcbaab7n51.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white font-['Inter'] flex items-center justify-center min-h-screen p-4">
+
+    <!-- Main container for the game menu -->
+    <div class="bg-slate-800 border-2 border-cyan-400 rounded-3xl p-10 md:p-12 lg:p-16 max-w-sm w-full container-glow">
+
+        <!-- A new flex container to ensure the title and subtitle are grouped and centered together. -->
+        <div class="flex flex-col items-center justify-center">
+            <!-- Game Title -->
+            <h1 class="text-4xl md:text-5xl lg:text-6xl font-bold uppercase tracking-wide mb-4 neon-glow text-center">
+                Futuristic Snake
+            </h1>
+
+            <!-- Subtitle or tag line -->
+            <p class="text-sm md:text-base text-cyan-200 mb-8 text-center">
+                Navigate the cyber grid. Consume the energy. Don't hit the wall.
+            </p>
+        </div>
+
+        <!-- Menu Buttons -->
+        <div class="flex flex-col space-y-4">
+            <!-- Updated to link directly to the game page -->
+            <a href="game.html" class="bg-purple-700 hover:bg-purple-600 text-white text-center font-bold py-3 px-6 rounded-full transition-colors btn-glow">
+                START GAME
+            </a>
+            <a href="how2play.html" class="bg-purple-700 hover:bg-purple-600 text-white text-center font-bold py-3 px-6 rounded-full transition-colors btn-glow">
+                HOW TO PLAY
+            </a>
+        </div>
+
+    </div>
+</body>
+</html>
