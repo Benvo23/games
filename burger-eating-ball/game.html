@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Burger Eating Ball</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-image: url('https://www.thespruceeats.com/thmb/UpVWAcHnFEe_KvQpYsR1a7U-WY0=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/SES-your-best-grilled-burger-recipe-7511041-hero-C-c5080fa5f97c4c2b908968527f8a851b.jpg');
+            background-size: cover; background-position: center; background-repeat: no-repeat;
+            color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            min-height: 100vh; margin: 0; text-align: center;
+        }
+        h1 { /* ... condensed styles ... */ }
+        #game-info { /* ... condensed styles ... */ }
+        #game-board {
+            width: 800px; height: 600px; background-color: #f0f0f0;
+            border: 5px solid #555; border-radius: 10px; position: relative;
+            overflow: hidden; box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+        #tip-bar {
+            position: absolute; top: 0; left: 0; width: 100%; padding: 10px 0;
+            background-color: rgba(36, 59, 85, 0.9); font-family: 'Bangers', cursive;
+            font-size: 1.8em; letter-spacing: 1px; text-shadow: 2px 2px 2px #000;
+            color: #fff; z-index: 50; transform: translateY(-100%);
+            transition: transform 0.5s ease-in-out;
+        }
+        #tip-bar.show { transform: translateY(0); }
+        /* Condensed styles for brevity */
+        h1 { font-family: 'Bangers', cursive; font-size: 4em; letter-spacing: 3px; color: #ffc107; text-shadow: 3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; margin-bottom: 0; }
+        #game-info { font-family: 'Bangers', cursive; display: flex; justify-content: space-between; width: 800px; margin-bottom: 10px; font-size: 1.8em; letter-spacing: 1px; text-shadow: 2px 2px 2px #000; }
+        #level-display { color: #eee; } #stats-display { text-align: right; } #high-score-display { color: gold; margin-right: 20px; }
+        #lives-display { color: lightcoral; margin-right: 20px;} #shield-timer-display { color: #00d9ff; display: none; }
+        #player { width: 25px; height: 25px; background-color: red; border-radius: 50%; position: absolute; z-index: 10; }
+        .invincible { opacity: 0.5; transform: scale(1.1); } .shielded { box-shadow: 0 0 15px 5px #00d9ff; }
+        .food { position: absolute; font-size: 30px; user-select: none; z-index: 5; }
+        .obstacle { background-color: #4A4A4A; position: absolute; border-radius: 5px; }
+        .hazard { position: absolute; z-index: 9; } .mover { background-color: #465a8a; border: 2px solid #2d3a59; border-radius: 5px; }
+        .spinner { border-radius: 50%; background: conic-gradient(#c12239, #e4435a, #c12239, #8d192a, #c12239); animation: spin 2s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        #game-over-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8); color: white; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100; }
+        #game-over-screen h2, #restart-button { font-family: 'Bangers', cursive; } #game-over-screen h2 { font-size: 6em; color: #dc3545; text-shadow: 3px 3px 0 #000; margin: 0; }
+        #restart-button { font-size: 2em; padding: 10px 30px; margin-top: 20px; border: 3px solid #fff; border-radius: 10px; background-color: #ffc107; color: #000; cursor: pointer; letter-spacing: 2px; }
+        #restart-button:hover { background-color: #fff; }
+        #legend { width: 800px; margin-top: 15px; padding: 10px; background-color: rgba(0, 0, 0, 0.5); border-radius: 10px; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 20px; }
+        .legend-item { display: flex; align-items: center; font-size: 1.1em; } .legend-icon { font-size: 1.5em; margin-right: 8px; }
+        .legend-player { display: inline-block; width: 20px; height: 20px; background-color: red; border-radius: 50%; margin-right: 8px; }
+        .legend-mover { display: inline-block; width: 20px; height: 20px; background-color: #465a8a; border-radius: 3px; margin-right: 8px; }
+        .legend-spinner { display: inline-block; width: 20px; height: 20px; background: conic-gradient(#c12239, #e4435a, #c12239); border-radius: 50%; margin-right: 8px; }
+    </style>
+</head>
+<body>
+    <h1>Burger Eating Ball</h1>
+    <div id="game-info">
+        <div id="level-display">Level 1</div>
+        <div id="stats-display">
+            <span id="high-score-display">Best: Level 1</span>
+            <span id="lives-display">Lives: 3</span>
+            <span id="shield-timer-display">Shield: 5s</span>
+        </div>
+    </div>
+    <div id="game-board">
+        <div id="player"></div>
+        <div id="game-over-screen">
+            <h2>Game Over</h2>
+            <button id="restart-button">Try Again</button>
+        </div>
+        <div id="tip-bar">This is a tip!</div>
+    </div>
+    <div id="legend">
+        <div class="legend-item"><span class="legend-player"></span> = You</div>
+        <div class="legend-item"><span class="legend-icon">🍔</span> = Goal</div>
+        <div class="legend-item"><span class="legend-icon">🍔⭐</span> = +1 Life</div>
+        <div class="legend-item"><span class="legend-icon">🍔🛡️</span> = 5s Shield</div>
+        <div class="legend-item"><span class="legend-mover"></span> = Moving Block</div>
+        <div class="legend-item"><span class="legend-spinner"></span> = Spinner</div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
