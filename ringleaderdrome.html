@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formula 8bit - Ringleaderdrome</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #1a1a1a;
+            color: white;
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        canvas {
+            background-color: #16a34a; /* Grass color */
+            display: block;
+        }
+        .hud {
+            text-shadow: 2px 2px #000;
+        }
+    </style>
+</head>
+<body>
+    <!-- Game Canvas -->
+    <canvas id="raceTrack"></canvas>
+    
+    <!-- HUD Elements -->
+    <div class="absolute top-4 left-4 text-2xl hud space-y-2">
+        <p>SPEED: <span id="speed-display">0</span> MPH</p>
+        <p>LAP: <span id="lap-display">0</span></p>
+        <p>TIME: <span id="time-display">00:00:000</span></p>
+    </div>
+
+     <div class="absolute bottom-4 left-4 text-2xl hud">
+        <p>BEST: <span id="best-time-display">--:--:---</span></p>
+    </div>
+    
+    <a href="track.html" class="absolute top-4 right-4 px-6 py-3 bg-blue-600 text-white border-4 border-blue-800 hover:bg-blue-500 transition-colors hud">
+        BACK
+    </a>
+    
+    <!-- Notification -->
+    <div id="notification" class="hidden absolute bottom-10 w-full flex justify-center px-4">
+        <div class="bg-red-600 text-white font-bold rounded-lg border-2 border-red-800 px-4 py-2" style="text-shadow: 1px 1px #000;">
+            <p id="notification-text"></p>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Canvas Setup ---
+        const canvas = document.getElementById('raceTrack');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            setCarStartPosition();
+        });
+
+        // --- Game Elements ---
+        const hudSpeed = document.getElementById('speed-display');
+        const hudLap = document.getElementById('lap-display');
+        const hudTime = document.getElementById('time-display');
+        const hudBestTime = document.getElementById('best-time-display');
+        const notification = document.getElementById('notification');
+        const notificationText = document.getElementById('notification-text');
+
+        const car = {
+            x: 0, 
+            y: 0,
+            width: 70,
+            height: 30,
+            speed: 0,
+            acceleration: 0.2,
+            maxSpeed: 10,
+            friction: 0.97,
+            angle: Math.PI, // Start facing left
+            turnSpeed: 0.05,
+            img: new Image(),
+            onValidSurface: true
+        };
+
+        const keys = {
+            arrowup: false,
+            arrowdown: false,
+            arrowleft: false,
+            arrowright: false,
+            w: false,
+            s: false,
+            a: false,
+            d: false
+        };
+        
+        let scaleX, scaleY;
+        let trackLimitsWarnings = 0;
+        let notificationTimeout;
+        
+        // Lap Timing variables
+        let lapCount = 0;
+        let lapStartTime = 0;
+        let bestLapTime = 0;
+        let currentLapTime = 0;
+        let hasCrossedHalfway = false;
+        let isLapTimeValid = true;
+
+        function setCarStartPosition() {
+            scaleX = canvas.width / 200;
+            scaleY = canvas.height / 150;
+            car.x = 100 * scaleX;
+            car.y = 30 * scaleY;
+            car.angle = Math.PI; 
+            car.speed = 0;
+            
+            lapCount = 0;
+            lapStartTime = 0;
+            currentLapTime = 0;
+            hasCrossedHalfway = false;
+            isLapTimeValid = true;
+            hudLap.textContent = lapCount;
+            hudTime.textContent = formatTime(0);
+        }
+
+        // --- Load Car ---
+        const defaultCarSVG = `<svg viewBox="0 0 70 30" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(180 35 15)"><g fill="#6b7280"><path d="M15,12 L22,12 L25,8 L48,8 L52,10 L52,20 L48,22 L25,22 L22,18 L15,18 Z" /><path d="M8,12 L15,12 L15,18 L8,18 Z" /></g><g fill="#000000"><rect x="18" y="2" width="8" height="4" rx="1"/><rect x="50" y="2" width="8" height="4" rx="1"/><rect x="18" y="24" width="8" height="4" rx="1"/><rect x="50" y="24" width="8" height="4" rx="1"/><path d="M12,2 L4,2 Q2,15 4,28 L12,28 L10,15 Z" /><path d="M58,8 L68,8 Q70,15 68,22 L58,22 L60,15 Z" /><rect x="55" y="13" width="3" height="4" /><path d="M26,13 L32,13 A2 2 0 0 1 34 15 A2 2 0 0 1 32 17 L26,17 Z" fill="#111111"/></g></g></svg>`;
+        let selectedCarSVG = localStorage.getItem('selectedCarSVG') || defaultCarSVG;
+
+        // The default SVG has a transform to orient it correctly. The garage SVGs don't.
+        // This wraps the loaded SVG with the same transform group.
+        if (!selectedCarSVG.includes('transform="rotate(180 35 15)"')) {
+            const svgContentMatch = selectedCarSVG.match(/<svg[^>]*>([\s\S]*)<\/svg>/i);
+            if (svgContentMatch && svgContentMatch[1]) {
+                const svgContent = svgContentMatch[1];
+                selectedCarSVG = `<svg viewBox="0 0 70 30" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(180 35 15)">${svgContent}</g></svg>`;
+            }
+        }
+        
+        // Correctly encode the SVG for all characters before setting it as a base64 source.
+        const correctlyEncodedSVG = btoa(unescape(encodeURIComponent(selectedCarSVG)));
+        car.img.src = 'data:image/svg+xml;base64,' + correctlyEncodedSVG;
+        
+        // --- Controls ---
+        document.addEventListener('keydown', (e) => {
+            if (keys.hasOwnProperty(e.key.toLowerCase())) {
+                keys[e.key.toLowerCase()] = true;
+            }
+        });
+        document.addEventListener('keyup', (e) => {
+            if (keys.hasOwnProperty(e.key.toLowerCase())) {
+                keys[e.key.toLowerCase()] = false;
+            }
+        });
+        
+        function formatTime(ms) {
+            if (ms === 0 && bestLapTime === 0 && lapCount < 1) return "00:00:000";
+            if (ms === 0) return "--:--:---";
+            const minutes = Math.floor(ms / 60000);
+            const seconds = Math.floor((ms % 60000) / 1000);
+            const milliseconds = Math.floor(ms % 1000);
+            return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}:${milliseconds.toString().padStart(3, '0')}`;
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function handleTrackLimits() {
+            trackLimitsWarnings++;
+            isLapTimeValid = false;
+            notificationText.textContent = `Track Limits Exceeded! (x${trackLimitsWarnings})`;
+            notification.classList.remove('hidden');
+
+            clearTimeout(notificationTimeout);
+            notificationTimeout = setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 2000);
+        }
+        
+        function isPointOnValidSurface(x, y) {
+            const centerX = 100 * scaleX;
+            const centerY = 75 * scaleY;
+            const trackRadiusX = 45 * scaleX;
+            const trackRadiusY = 45 * scaleY;
+
+            // Using a wider track definition for more lenient limits
+            const innerTrackRadiusX = trackRadiusX - (7 * scaleX);
+            const innerTrackRadiusY = trackRadiusY - (7 * scaleY);
+            const outerTrackRadiusX = trackRadiusX + (7 * scaleX);
+            const outerTrackRadiusY = trackRadiusY + (7 * scaleY);
+
+            const dx = x - centerX;
+            const dy = y - centerY;
+
+            const onMainTrack = ((dx / outerTrackRadiusX) ** 2 + (dy / outerTrackRadiusY) ** 2 <= 1) && 
+                                ((dx / innerTrackRadiusX) ** 2 + (dy / innerTrackRadiusY) ** 2 >= 1);
+            if (onMainTrack) return true;
+
+            const scaledX = x / scaleX;
+            const scaledY = y / scaleY;
+
+            if (scaledX >= 70 && scaledX <= 130 && scaledY >= 47.5 && scaledY <= 52.5) return true;
+            if (scaledY > 50 && scaledY < 75) {
+                if ((scaledX > 60 && scaledX < 75) || (scaledX > 125 && scaledX < 140)) return true;
+            }
+
+            return false;
+        }
+
+        function update() {
+            if (keys.arrowup || keys.w) {
+                 if(lapStartTime === 0 && car.speed >= 0) lapStartTime = performance.now();
+                car.speed += car.acceleration;
+            }
+            if (keys.arrowdown || keys.s) car.speed -= car.acceleration;
+
+            if (car.speed > car.maxSpeed) car.speed = car.maxSpeed;
+            if (car.speed < -0.65) car.speed = -0.65;
+
+            car.speed *= car.friction;
+            if (Math.abs(car.speed) < 0.1) car.speed = 0;
+
+            if (car.speed !== 0) {
+                const turnDirection = car.speed > 0 ? 1 : -1;
+                if (keys.arrowleft || keys.a) car.angle -= car.turnSpeed * turnDirection;
+                if (keys.arrowright || keys.d) car.angle += car.turnSpeed * turnDirection;
+            }
+           
+            const prevX = car.x;
+            const prevY = car.y;
+            car.x += car.speed * Math.cos(car.angle);
+            car.y += car.speed * Math.sin(car.angle);
+            
+            // --- Collision & Track Limits ---
+            const centerX = 100 * scaleX;
+            const centerY = 75 * scaleY;
+            
+            const cos = Math.cos(car.angle);
+            const sin = Math.sin(car.angle);
+            const w2 = car.width / 2.5;
+            const h2 = car.height / 2.5;
+
+            const corners = [
+                { x: car.x + w2 * cos - h2 * sin, y: car.y + w2 * sin + h2 * cos },
+                { x: car.x + w2 * cos + h2 * sin, y: car.y + w2 * sin - h2 * cos },
+                { x: car.x - w2 * cos - h2 * sin, y: car.y - w2 * sin + h2 * cos },
+                { x: car.x - w2 * cos + h2 * sin, y: car.y - w2 * sin - h2 * cos }
+            ];
+            
+            let onSurface = false;
+            for(const corner of corners) {
+                if (isPointOnValidSurface(corner.x, corner.y)) {
+                    onSurface = true;
+                    break;
+                }
+            }
+
+            if (!onSurface && car.onValidSurface) handleTrackLimits();
+            car.onValidSurface = onSurface;
+
+            // Original "Good Enough" Wall Collision
+            const grandstandRadiusX = 60 * scaleX - (6 * scaleX);
+            const grandstandRadiusY = 60 * scaleY - (6 * scaleY);
+            const dx = car.x - centerX;
+            const dy = car.y - centerY;
+            const hitGrandstand = (dx / grandstandRadiusX) ** 2 + (dy / grandstandRadiusY) ** 2 >= 1;
+            if (hitGrandstand) { car.x = prevX; car.y = prevY; car.speed = -car.speed * 0.7; }
+            
+            const pitX = 70 * scaleX; const pitY = 54 * scaleY;
+            const pitWidth = 60 * scaleX; const pitHeight = 8 * scaleY;
+            if (car.x > pitX && car.x < pitX + pitWidth && car.y > pitY && car.y < pitY + pitHeight) {
+                car.x = prevX; car.y = prevY; car.speed = -car.speed * 0.7;
+            }
+
+            // --- Lap Timing Logic ---
+            if (lapStartTime > 0) {
+                currentLapTime = performance.now() - lapStartTime;
+            }
+            
+            const startFinishLineX = 100 * scaleX;
+            const finishLineYTop = 20 * scaleY; 
+            const finishLineYBottom = 40 * scaleY;
+
+            const carFrontX = car.x + (car.width / 2) * Math.cos(car.angle);
+            const prevCarFrontX = prevX + (car.width / 2) * Math.cos(car.angle);
+
+            if (carFrontX < startFinishLineX && prevCarFrontX >= startFinishLineX && 
+                car.y > finishLineYTop && car.y < finishLineYBottom && 
+                hasCrossedHalfway) {
+                
+                if (isLapTimeValid && lapStartTime > 0) {
+                    if (bestLapTime === 0 || currentLapTime < bestLapTime) {
+                        bestLapTime = currentLapTime;
+                    }
+                }
+                
+                lapCount++;
+                lapStartTime = performance.now();
+                hasCrossedHalfway = false;
+                isLapTimeValid = true; // Reset for the new lap
+            }
+            
+            if (car.y > centerY) {
+                hasCrossedHalfway = true;
+            }
+
+            hudSpeed.textContent = Math.round(Math.abs(car.speed) * 15.5);
+            hudLap.textContent = lapCount;
+            if (isLapTimeValid) {
+                hudTime.textContent = formatTime(currentLapTime);
+            } else {
+                hudTime.textContent = "INVALID";
+            }
+            hudBestTime.textContent = formatTime(bestLapTime);
+        }
+
+        function draw() {
+            ctx.fillStyle = '#16a34a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            scaleX = canvas.width / 200; scaleY = canvas.height / 150;
+            const centerX = 100 * scaleX; const centerY = 75 * scaleY;
+            const trackRadiusX = 45 * scaleX; const trackRadiusY = 45 * scaleY;
+
+            ctx.strokeStyle = "#a1a1aa"; ctx.lineWidth = 12 * scaleX;
+            ctx.beginPath(); ctx.ellipse(centerX, centerY, 60 * scaleX, 60 * scaleY, 0, 0, 2 * Math.PI); ctx.stroke();
+            
+            ctx.strokeStyle = "#6b7280"; ctx.lineWidth = 0.5 * scaleX;
+            for(let i = 56; i <= 64; i += 2) {
+                ctx.beginPath(); ctx.ellipse(centerX, centerY, i * scaleX, i * scaleY, 0, 0, 2 * Math.PI); ctx.stroke();
+            }
+
+            ctx.strokeStyle = '#27272a'; ctx.lineWidth = 10 * scaleX;
+            ctx.beginPath(); ctx.ellipse(centerX, centerY, trackRadiusX, trackRadiusY, 0, 0, 2 * Math.PI); ctx.stroke();
+            
+            ctx.strokeStyle = '#4a4a4a'; ctx.lineWidth = 5 * scaleX;
+            ctx.beginPath();
+            ctx.moveTo(145 * scaleX, 75 * scaleY);
+            ctx.bezierCurveTo(145 * scaleX, 55 * scaleY, 135 * scaleX, 50 * scaleY, 125 * scaleX, 50 * scaleY);
+            ctx.lineTo(75 * scaleX, 50 * scaleY);
+            ctx.bezierCurveTo(65 * scaleX, 50 * scaleY, 55 * scaleX, 55 * scaleY, 55 * scaleX, 75 * scaleY);
+            ctx.stroke();
+            
+            ctx.fillStyle = '#6b7280'; ctx.fillRect(70 * scaleX, 54 * scaleY, 60 * scaleX, 8 * scaleY);
+            
+            ctx.strokeStyle = 'white'; ctx.lineWidth = 0.5 * scaleX;
+            ctx.beginPath();
+            for(let i = 75; i <= 125; i += 10) {
+                 ctx.moveTo(i * scaleX, 52 * scaleY);
+                 ctx.lineTo(i * scaleX, 54 * scaleY);
+            }
+            ctx.stroke();
+
+            ctx.fillStyle = 'white'; ctx.fillRect(98 * scaleX, 25 * scaleY, 4 * scaleX, 10 * scaleY);
+
+            ctx.save();
+            ctx.translate(car.x, car.y);
+            ctx.rotate(car.angle);
+            ctx.drawImage(car.img, -car.width / 2, -car.height / 2, car.width, car.height);
+            ctx.restore();
+        }
+
+        setCarStartPosition();
+        car.img.onload = gameLoop;
+
+    </script>
+
+</body>
+</html>
+
