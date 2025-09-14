@@ -24,10 +24,9 @@
 
     <div class="relative min-h-screen w-full flex flex-col items-center justify-center p-4 garage-bg bg-cover bg-center">
 
-        <div class="absolute top-5 w-full flex justify-between items-center px-8">
-            <a href="index.html" class="px-6 py-3 bg-red-600 text-white border-4 border-red-800 hover:bg-red-500 transition-colors">BACK</a>
+        <div class="absolute top-5 w-full flex justify-center items-center px-8">
+            <a href="index.html" class="absolute left-8 px-6 py-3 bg-red-600 text-white border-4 border-red-800 hover:bg-red-500 transition-colors">BACK</a>
             <h1 class="text-4xl" style="text-shadow: 3px 3px #000;">GARAGE</h1>
-            <div class="w-24"></div> <!-- Placeholder for balance -->
         </div>
 
         <div class="w-full flex items-center justify-around">
@@ -42,7 +41,7 @@
 
         <div class="absolute bottom-10 w-full flex flex-col sm:flex-row items-center justify-center gap-4 px-4">
             <button id="select-car-btn" class="w-full sm:w-auto px-8 py-4 bg-green-600 text-white border-4 border-green-800 hover:bg-green-500 transition-colors duration-150" style="text-shadow: 2px 2px #000;">SELECT CAR</button>
-            <button id="go-to-track-btn" class="w-full sm:w-auto px-8 py-4 bg-blue-600 text-white border-4 border-blue-800 hover:bg-blue-500 transition-colors duration-150" style="text-shadow: 2px 2px #000;">CHOOSE TRACK</button>
+            <button id="go-to-track-btn" class="w-full sm:w-auto px-8 py-4 bg-blue-600 text-white border-4 border-blue-800 hover:bg-blue-500 transition-colors duration-150 opacity-50 cursor-not-allowed" style="text-shadow: 2px 2px #000;" disabled>CHOOSE TRACK</button>
         </div>
 
         <!-- Notification -->
@@ -62,6 +61,9 @@
         const selectBtn = document.getElementById('select-car-btn');
         const goToTrackBtn = document.getElementById('go-to-track-btn');
         const notification = document.getElementById('notification');
+
+        // Reset car selection on page load
+        localStorage.removeItem('selectedCarSVG');
 
         const cars = [
             {
@@ -273,7 +275,7 @@
             },
             {
                 name: "Alpha",
-                model: "A521",
+                model: "A524",
                 svg: `<svg viewBox="0 0 70 30" xmlns="http://www.w3.org/2000/svg">
         <g fill="#2596be">
             <path d="M15,12 L22,12 L25,8 L48,8 L52,10 L52,20 L48,22 L25,22 L22,18 L15,18 Z" />
@@ -286,7 +288,7 @@
             <rect x="50" y="24" width="8" height="4" rx="1"/>
             <path d="M12,2 L4,2 Q2,15 4,28 L12,28 L10,15 Z" />
             <path d="M58,8 L68,8 Q70,15 68,22 L58,22 L60,15 Z" />
-            <rect x="55" y="13" width="3" height="4" />
+            <rect x="55" y="13" width="4" height="4" />
             <path d="M26,13 L32,13 A2 2 0 0 1 34 15 A2 2 0 0 1 32 17 L26,17 Z" fill="#111111"/>
         </g>
         <!-- Tricolore Detail -->
@@ -300,7 +302,7 @@
             {
                 name: "Alfa Taurus",
                 model: "AT-04",
-                svg: `<svg viewBox="0 0 70 30" xmlns="http://www.w3.org/2000/svg"><path d="M15,12 L22,12 L25,8 L48,8 L52,10 L52,20 L48,22 L25,22 L22,18 L15,18 Z" fill="white"/><text x="41" y="19" font-family="Arial, sans-serif" font-size="14" fill="#001F3F" text-anchor="middle">∞</text><path d="M8,12 L15,12 L15,18 L8,18 Z" fill="#001F3F"/><g fill="#000000"><rect x="18" y="2" width="8" height="4" rx="1"/><rect x="50" y="2" width="8" height="4" rx="1"/><rect x="18" y="24" width="8" height="4" rx="1"/><rect x="50" y="24" width="8" height="4" rx="1"/><path d="M26,13 L32,13 A2 2 0 0 1 34 15 A2 2 0 0 1 32 17 L26,17 Z" fill="#111111"/></g><g><path d="M12,2 L4,2 Q2,15 4,28 L12,28 L10,15 Z" fill="#000000"/><text x="8" y="15.5" font-family="'Press Start 2P', monospace" font-size="1.8" fill="white" text-anchor="middle" transform="rotate(-90 8 15.5)">ALFA TAURUS</text></g><g><path d="M58,8 L68,8 Q70,15 68,22 L58,22 L60,15 Z" fill="#DC2626" stroke="black" stroke-width="0.5"/><rect x="55" y="13" width="3" height="4" fill="black"/><text x="63" y="15.5" font-family="'Press Start 2P', monospace" font-size="2" fill="white" text-anchor="middle" transform="rotate(-90 63 15.5)">ORLIN</text></g></svg>`
+                svg: `<svg viewBox="0 0 70 30" xmlns="http://www.w3.org/2000/svg"><path d="M15,12 L22,12 L25,8 L48,8 L52,10 L52,20 L48,22 L25,22 L22,18 L15,18 Z" fill="white"/><text x="41" y="24.25" font-family="Arial, sans-serif" font-size="28" fill="#001F3F" text-anchor="middle">∞</text><path d="M8,12 L15,12 L15,18 L8,18 Z" fill="#001F3F"/><g fill="#000000"><rect x="18" y="2" width="8" height="4" rx="1"/><rect x="50" y="2" width="8" height="4" rx="1"/><rect x="18" y="24" width="8" height="4" rx="1"/><rect x="50" y="24" width="8" height="4" rx="1"/><path d="M26,13 L32,13 A2 2 0 0 1 34 15 A2 2 0 0 1 32 17 L26,17 Z" fill="#111111"/></g><g><path d="M12,2 L4,2 Q2,15 4,28 L12,28 L10,15 Z" fill="#000000"/><text x="8" y="15.5" font-family="'Press Start 2P', monospace" font-size="1.8" fill="white" text-anchor="middle" transform="rotate(-90 8 15.5)">ALFA TAURUS</text></g><g><path d="M58,8 L68,8 Q70,15 68,22 L58,22 L60,15 Z" fill="#DC2626" stroke="black" stroke-width="0.5"/><rect x="55" y="13" width="3" height="4" fill="black"/><text x="63" y="15.5" font-family="'Press Start 2P', monospace" font-size="2" fill="white" text-anchor="middle" transform="rotate(-90 63 15.5)">ORLIN</text></g></svg>`
             }
         ];
 
@@ -312,7 +314,7 @@
             carDisplay.innerHTML = car.svg;
             carName.textContent = car.name;
             carModel.textContent = car.model;
-
+            
             if (currentIndex === selectedCarIndex) {
                 selectBtn.textContent = 'SELECTED!';
                 selectBtn.disabled = true;
@@ -340,7 +342,9 @@
             selectedCarIndex = currentIndex;
             const selectedCar = cars[currentIndex];
             localStorage.setItem('selectedCarSVG', selectedCar.svg);
-            renderCar();
+            renderCar(); 
+            goToTrackBtn.disabled = false;
+            goToTrackBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         });
 
         goToTrackBtn.addEventListener('click', () => {
@@ -350,12 +354,16 @@
                 notification.classList.remove('hidden');
                 setTimeout(() => {
                     notification.classList.add('hidden');
-                }, 3000);
+                }, 3000); 
             }
         });
-
+        
         // Initial Load
         renderCar();
+        if(!localStorage.getItem('selectedCarSVG')){
+             goToTrackBtn.disabled = true;
+             goToTrackBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        }
 
     </script>
 
