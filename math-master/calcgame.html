@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Master - Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-image: url('https://img.freepik.com/free-photo/flat-lay-desk-arrangement-with-copy-space_23-2148928165.jpg?semt=ais_hybrid&w=740&q=80');
+            background-size: cover;
+            background-position: center;
+        }
+
+        #game-area {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+
+        #calculator {
+            width: 420px;
+            background: #2c3e50;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 2px solid #34495e;
+        }
+        
+        #calculator-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #ecf0f1;
+            padding: 0 5px 15px 5px;
+        }
+
+        #brand {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+        }
+
+        #solar-panel {
+            width: 80px;
+            height: 30px;
+            background: #1a252f;
+            border-radius: 5px;
+        }
+
+        #display {
+            background: #b2c5b2;
+            color: #333;
+            padding: 15px 20px;
+            border-radius: 5px;
+            text-align: right;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2em;
+            margin-bottom: 20px;
+            height: 70px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border: 2px solid #8a9a8a;
+        }
+        
+        #problem {
+            font-size: 0.7em;
+            opacity: 0.8;
+        }
+
+        #answer-display {
+            font-size: 1em;
+        }
+
+        #buttons {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+        }
+
+        .btn {
+            position: relative;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 700;
+            color: #333;
+            background: #d0d0d0;
+            border-bottom: 3px solid #aaa;
+        }
+        
+        .btn:active {
+            transform: translateY(2px);
+            border-bottom: 1px solid #aaa;
+        }
+
+        .secondary-function {
+            position: absolute;
+            top: 3px;
+            left: 5px;
+            font-size: 0.6em;
+            color: #d35400;
+            font-weight: 700;
+        }
+        
+        .fn {
+            background: #34495e;
+            color: white;
+            border-bottom-color: #2c3e50;
+        }
+
+        .operator {
+            background-color: #e67e22;
+            color: white;
+            border-bottom-color: #d35400;
+        }
+
+        .submit {
+            background-color: #27ae60;
+            color: white;
+            border-bottom-color: #229954;
+        }
+        
+        #feedback {
+            text-align: center;
+            margin-top: 15px;
+            height: 20px;
+            font-weight: 300;
+            color: #ecf0f1;
+        }
+
+        #scratch-paper-container {
+            text-align: center;
+            background: #fafafa;
+            padding: 25px;
+            border-radius: 5px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            background-image: url('https://www.transparenttextures.com/patterns/paper.png');
+        }
+
+        #scratch-paper {
+            border: 1px solid #ccc;
+            cursor: crosshair;
+            background: #fafafa;
+        }
+
+        #clear-scratch-btn {
+            margin-top: 15px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background-color: #e74c3c;
+            color: white;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        #back-btn {
+            display: inline-block;
+            margin-top: 15px;
+            padding: 10px 20px;
+            border-radius: 8px;
+            background-color: #7f8c8d;
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-area">
+        <div id="calculator">
+            <div id="calculator-header">
+                <div id="brand">MATH MASTER 5000</div>
+                <div id="solar-panel"></div>
+            </div>
+            <div id="display">
+                <div id="problem"></div>
+                <div id="answer-display"></div>
+            </div>
+            <div id="buttons">
+                <button class="btn fn"><span class="secondary-function">sin⁻¹</span>sin</button>
+                <button class="btn fn"><span class="secondary-function">cos⁻¹</span>cos</button>
+                <button class="btn fn"><span class="secondary-function">tan⁻¹</span>tan</button>
+                <button class="btn fn"><span class="secondary-function">x³</span>x²</button>
+                <button class="btn fn"><span class="secondary-function">³√</span>√</button>
+
+                <button class="btn fn">log</button>
+                <button class="btn number">7</button>
+                <button class="btn number">8</button>
+                <button class="btn number">9</button>
+                <button class="btn operator">÷</button>
+
+                <button class="btn fn">ln</button>
+                <button class="btn number">4</button>
+                <button class="btn number">5</button>
+                <button class="btn number">6</button>
+                <button class="btn operator">×</button>
+
+                <button class="btn fn">(</button>
+                <button class="btn number">1</button>
+                <button class="btn number">2</button>
+                <button class="btn number">3</button>
+                <button class="btn operator">-</button>
+
+                <button class="btn fn">)</button>
+                <button class="btn number">0</button>
+                <button class="btn operator">C</button>
+                <button class="btn submit" style="grid-column: span 2;">Enter</button>
+            </div>
+            <p id="feedback"></p>
+            <a href="index.html" id="back-btn">Back to Main Menu</a>
+        </div>
+        <div id="scratch-paper-container">
+            <h2>Scratch Paper</h2>
+            <canvas id="scratch-paper" width="400" height="450"></canvas>
+            <button id="clear-scratch-btn">Clear Paper</button>
+        </div>
+    </div>
+    <script>
+        // Game Logic
+        const problemElement = document.getElementById('problem');
+        const answerDisplay = document.getElementById('answer-display');
+        const feedbackElement = document.getElementById('feedback');
+        const buttons = document.querySelectorAll('.btn');
+
+        let currentLevel = 1;
+        let score = 0;
+        let correctAnswer;
+        let currentAnswer = '';
+
+        function generateProblem() {
+            const level = currentLevel;
+            let num1, num2, operator, problem, answer;
+            
+            // The problem difficulty now scales with the level
+            const difficulty = Math.floor(level / 2) + 1;
+
+            // Choose a random operation type
+            const operationType = Math.floor(Math.random() * 4);
+
+            if (operationType === 0) { // Addition
+                num1 = Math.floor(Math.random() * 10 * difficulty) + 1;
+                num2 = Math.floor(Math.random() * 10 * difficulty) + 1;
+                operator = '+';
+                problem = `${num1} ${operator} ${num2}`;
+                answer = num1 + num2;
+            } else if (operationType === 1) { // Subtraction
+                num1 = Math.floor(Math.random() * 10 * difficulty) + 5;
+                num2 = Math.floor(Math.random() * 5 * difficulty) + 1;
+                operator = '-';
+                problem = `${num1} ${operator} ${num2}`;
+                answer = num1 - num2;
+            } else if (operationType === 2) { // Multiplication
+                num1 = Math.floor(Math.random() * 5 * difficulty) + 2;
+                num2 = Math.floor(Math.random() * 5 * difficulty) + 2;
+                operator = '×';
+                problem = `${num1} ${operator} ${num2}`;
+                answer = num1 * num2;
+            } else { // Division
+                answer = Math.floor(Math.random() * 5 * difficulty) + 2;
+                num2 = Math.floor(Math.random() * 5 * difficulty) + 2;
+                num1 = answer * num2;
+                operator = '÷';
+                problem = `${num1} ${operator} ${num2}`;
+            }
+
+            problemElement.textContent = problem;
+            correctAnswer = answer;
+        }
+
+        function handleButtonClick(e) {
+            const target = e.currentTarget;
+            let value = target.textContent;
+
+            if (target.querySelector('.secondary-function')) {
+                const secondaryText = target.querySelector('.secondary-function').textContent;
+                value = value.replace(secondaryText, '').trim();
+            }
+
+            if (!isNaN(value) || value === '.') {
+                currentAnswer += value;
+                answerDisplay.textContent = currentAnswer;
+            } else if (value === 'C') {
+                currentAnswer = '';
+                answerDisplay.textContent = '';
+            } else if (value === 'Enter') {
+                checkAnswer();
+            }
+        }
+
+        function checkAnswer() {
+            const userAnswer = parseInt(currentAnswer);
+
+            if (isNaN(userAnswer)) {
+                feedbackElement.textContent = "Please enter a number.";
+                return;
+            }
+
+            if (userAnswer === correctAnswer) {
+                score += 10;
+                currentLevel++;
+                feedbackElement.textContent = "Correct! Level " + currentLevel;
+                feedbackElement.style.color = "#27ae60";
+            } else {
+                feedbackElement.textContent = "Incorrect. Try again.";
+                feedbackElement.style.color = "#c0392b";
+            }
+
+            currentAnswer = '';
+            answerDisplay.textContent = '';
+            generateProblem();
+        }
+
+        buttons.forEach(button => button.addEventListener('click', handleButtonClick));
+
+        generateProblem();
+
+        // Scratch Paper Logic
+        const canvas = document.getElementById('scratch-paper');
+        const ctx = canvas.getContext('2d');
+        const clearScratchBtn = document.getElementById('clear-scratch-btn');
+        let drawing = false;
+
+        function startPosition(e) {
+            drawing = true;
+            draw(e);
+        }
+
+        function endPosition() {
+            drawing = false;
+            ctx.beginPath();
+        }
+
+        function draw(e) {
+            if (!drawing) return;
+            const rect = canvas.getBoundingClientRect();
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#2c3e50';
+
+            ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+        }
+        
+        function clearScratchPaper() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+
+        canvas.addEventListener('mousedown', startPosition);
+        canvas.addEventListener('mouseup', endPosition);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseleave', endPosition);
+        clearScratchBtn.addEventListener('click', clearScratchPaper);
+
+    </script>
+</body>
+</html>
