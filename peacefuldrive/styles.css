@@ -1,0 +1,334 @@
+@import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
+
+/* styles.css */
+body {
+    margin: 0;
+    overflow: hidden;
+    /* Removed background-image, background-size, etc. from global body */
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Center all items vertically */
+    align-items: center;
+    font-family: sans-serif;
+    color: #333;
+}
+
+body.index-page {
+    background-image: url('https://www.insidethetravellab.com/wp-content/uploads/2022/05/Best-road-trips-for-couples-in-the-US-Hawaii-road-trip.jpeg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.content {
+    margin-top: -10vh; /* Adjust content position relative to center */
+    text-align: center;
+    /* Styles for content on help.html and carselect.html */
+    background-color: rgba(100, 100, 100, 0.8); /* Semi-transparent grey background for readability */
+    padding: 20px;
+    border-radius: 10px;
+    max-width: 80%;
+    overflow-y: auto; /* Enable scrolling for content that exceeds height */
+    max-height: 80vh; /* Limit content height */
+}
+
+.button-area {
+    position: relative; /* Change to relative positioning */
+    margin-top: 20px; /* Add some space between content and buttons */
+    width: 100%;
+    background: transparent; /* Remove the fade effect */
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end; /* Align buttons to the bottom of the area */
+    padding-bottom: 20px; /* Add some space from the bottom */
+}
+
+
+h1 {
+    font-family: 'Pacifico', cursive;
+    font-size: 4rem;
+    color: #FFD700; /* Gold color for a sunset feel */
+    text-shadow: 3px 3px 6px rgba(0,0,0,0.7);
+    z-index: 10;
+}
+
+p {
+    z-index: 10;
+    color: white;
+    text-align: center; /* Center the text */
+    text-shadow:
+        -1px -1px 0 #000,
+         1px -1px 0 #000,
+        -1px  1px 0 #000,
+         1px  1px 0 #000;
+}
+
+.content h1, .content h2, .content p, .content ul, .content li {
+    color: black;
+    text-shadow: none; /* Remove text shadow for better readability */
+}
+
+/* Specific style for links within content */
+.content a {
+    color: black;
+    text-shadow: none;
+    text-decoration: underline;
+}
+
+.car-options {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    margin-top: 20px;
+}
+
+.car-option {
+    background-color: rgba(255, 255, 255, 0.9);
+    padding: 15px;
+    margin: 10px;
+    border-radius: 8px;
+    width: 150px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    color: black; /* Ensure text inside is black */
+}
+
+.car-option h3 {
+    color: black;
+    margin-top: 0;
+}
+
+.select-car-button {
+    /* Inherit styles from the general .button class for consistency */
+    background-color: #FFD700; /* Gold background */
+    color: #333; /* Dark text */
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+    padding: 8px 15px;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    margin-top: 10px;
+}
+
+.select-car-button:hover {
+    background-color: #e6c200; /* Slightly darker gold on hover */
+}
+
+.select-car-button.selected {
+    background-color: #4CAF50; /* Green to indicate selection */
+    color: white;
+}
+
+.car-option.selected {
+    outline: 2px solid #4CAF50; /* Green outline on the selected car option */
+}
+
+.car-image {
+    height: 80px; /* Increased height for better image display */
+    margin: 10px auto;
+    width: 120px;
+    border-radius: 5px;
+    overflow: hidden; /* Hide parts of image that don't fit */
+}
+
+.car-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Make the image cover the container */
+}
+
+
+.button {
+    display: inline-block;
+    margin: 0 10px;
+    padding: 10px 20px;
+    background-color: #FFD700; /* Gold background */
+    color: #333; /* Dark text */
+    text-decoration: none;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+    z-index: 10; /* Bring text to front */
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3); /* Add a subtle text shadow */
+}
+
+.button:hover {
+    background-color: #e6c200; /* Slightly darker gold on hover */
+}
+
+/* General style for other links */
+a {
+    color: #FFD700;
+    text-decoration: none;
+}
+
+/* ... (keep existing styles from body to .button) ... */
+
+#game-container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+    perspective: 500px;
+}
+
+#sky {
+    height: 60%; /* More sky */
+    background: linear-gradient(to bottom, #3A6EA5, #87CEEB); /* Deeper blue sky */
+    position: relative;
+    z-index: 1;
+}
+
+#mountains {
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    height: 50%;
+}
+
+.mountain {
+    position: absolute;
+    bottom: 0;
+    background-color: #6c7a89; /* Rocky grey */
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+}
+
+.mountain::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 30%;
+    background-color: #4CAF50;
+    clip-path: polygon(50% 0%, 10% 100%, 90% 100%);
+}
+
+.mountain-1 { width: 300px; height: 150px; left: 10%; }
+.mountain-2 { width: 400px; height: 200px; left: 30%; }
+.mountain-3 { width: 250px; height: 120px; left: 60%; }
+
+#road {
+    height: 40%; /* Less road */
+    width: 100%;
+    background: #4a5d23; /* Darker grass */
+    position: absolute;
+    bottom: 0;
+    z-index: 2;
+    left: 50%;
+    transform: translateX(-50%) rotateX(70deg) translateY(0px); /* Centered and rotated */
+    transform-origin: 50% 100%;
+}
+
+#road-surface {
+    position: absolute;
+    width: 50%; /* Narrower road */
+    height: 100%;
+    left: 25%; /* Center the road surface */
+    background: #333; /* Darker road */
+    box-shadow: 0 0 20px rgba(0,0,0,0.5); /* Add some depth */
+}
+
+#road-lines {
+    position: absolute;
+    width: 100%; /* Fill road-surface */
+    height: 100%;
+    background: repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 45%, /* Space before first yellow line */
+        #FFD700 45%,
+        #FFD700 46%, /* First yellow line */
+        transparent 46%,
+        transparent 54%, /* Space between yellow lines */
+        #FFD700 54%,
+        #FFD700 55%, /* Second yellow line */
+        transparent 55%,
+        transparent 100%
+    );
+    background-size: 100% 200px; /* Adjust size for repetition */
+}
+
+#trees {
+    position: absolute;
+    bottom: 40%; /* On the horizon */
+    width: 100%;
+    height: 20%;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.tree {
+    position: absolute;
+    bottom: 0;
+    width: 30px;
+    height: 80px;
+    background-color: #2c3e50; /* Dark green for pine */
+    clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    animation: move-scenery 5s linear infinite;
+}
+
+#player-car {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px; /* Narrower for back profile */
+    height: 50px;
+    z-index: 10;
+}
+
+/* Remove wheel pseudo-elements for back profile */
+#player-car::before, #player-car::after {
+    content: none;
+}
+
+.normal-car, .sport-car, .electric-car, .truck-car {
+    height: 100%;
+    width: 100%;
+    border-radius: 5px;
+    position: relative;
+}
+
+.normal-car { background-color: #A9A9A9; }
+.sport-car { background-color: #f44336; }
+.electric-car { background-color: #2196F3; }
+.truck-car { background-color: #FF9800; height: 120%; }
+
+.normal-car::before, .normal-car::after,
+.sport-car::before, .sport-car::after,
+.electric-car::before, .electric-car::after,
+.truck-car::before, .truck-car::after {
+    content: '';
+    position: absolute;
+    bottom: 10px;
+    width: 20px;
+    height: 10px;
+    background-color: #ff0000;
+    border-radius: 2px;
+}
+
+.normal-car::before, .sport-car::before, .electric-car::before, .truck-car::before { left: 10px; }
+.normal-car::after, .sport-car::after, .electric-car::after, .truck-car::after { right: 10px; }
+
+
+#controls-info {
+    position: absolute;
+    bottom: 10px;
+    width: 100%;
+    text-align: center;
+    color: white;
+    z-index: 110;
+}
+
+@keyframes move-scenery {
+    from {
+        transform: translateX(110vw); /* Start off-screen */
+    }
+    to {
+        transform: translateX(-10vw); /* End off-screen */
+    }
+}

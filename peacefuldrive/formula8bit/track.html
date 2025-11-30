@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formula 8bit - Track Select</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #1a1a1a;
+            overflow: hidden;
+        }
+        .track-select-bg {
+            background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), url('https://media.istockphoto.com/id/481248302/photo/concrete-patio-fill.jpg?s=612x612&w=0&k=20&c=BtmEcZiH1lKFlzi8DL-YdEAlOSB-en80ITBNKvIQwy8=');
+        }
+        .track-preview {
+            background-color: #333;
+            border: 4px solid #555;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5) inset;
+            position: relative;
+        }
+        .track-preview svg {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="text-white">
+
+    <div class="relative min-h-screen w-full flex flex-col items-center justify-center p-4 track-select-bg bg-cover bg-center">
+        
+        <div class="absolute top-5 w-full flex justify-between items-center px-8">
+            <h1 class="text-4xl" style="text-shadow: 3px 3px #000;">SELECT TRACK</h1>
+            <button id="back-btn" class="px-6 py-3 bg-red-600 text-white border-4 border-red-800 hover:bg-red-500 transition-colors">BACK</button>
+        </div>
+
+        <div class="w-full flex items-center justify-around">
+            <div id="prev-track" class="text-white text-6xl hover:text-yellow-400 transition-colors cursor-pointer" style="text-shadow: 3px 3px #000;">&lt;</div>
+
+            <div class="flex flex-col items-center">
+                <div id="track-preview-container" class="track-preview w-80 h-64 md:w-[450px] md:h-[300px] lg:w-[600px] lg:h-[400px] flex items-center justify-center">
+                </div>
+                <h2 id="track-name" class="text-3xl mt-6" style="text-shadow: 2px 2px #000;"></h2>
+                <p id="track-country" class="text-4xl -mt-1"></p>
+            </div>
+
+            <div id="next-track" class="text-white text-6xl hover:text-yellow-400 transition-colors cursor-pointer" style="text-shadow: 3px 3px #000;">&gt;</div>
+        </div>
+
+        <div class="absolute bottom-10 w-full flex justify-center">
+            <button id="select-track-btn" class="w-full max-w-sm px-8 py-4 bg-green-600 text-white border-4 border-green-800 hover:bg-green-500 transition-colors duration-150" style="text-shadow: 2px 2px #000;">SELECT TRACK</button>
+        </div>
+
+    </div>
+
+    <script>
+        const trackPreview = document.getElementById('track-preview-container');
+        const trackName = document.getElementById('track-name');
+        const trackCountry = document.getElementById('track-country');
+        const prevBtn = document.getElementById('prev-track');
+        const nextBtn = document.getElementById('next-track');
+        const selectBtn = document.getElementById('select-track-btn');
+        const backBtn = document.getElementById('back-btn');
+
+        const tracks = [
+            {
+                name: "Ring LeaderDrome",
+                country: "🇺🇸",
+                htmlFile: "ringleaderdrome.html",
+                svg: `<svg viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="150" fill="#16a34a"/><g><circle cx="100" cy="75" r="60" fill="none" stroke="#a1a1aa" stroke-width="12"/><circle cx="100" cy="75" r="56" fill="none" stroke="#6b7280" stroke-width="0.5"/><circle cx="100" cy="75" r="58" fill="none" stroke="#6b7280" stroke-width="0.5"/><circle cx="100" cy="75" r="60" fill="none" stroke="#6b7280" stroke-width="0.5"/><circle cx="100" cy="75" r="62" fill="none" stroke="#6b7280" stroke-width="0.5"/><circle cx="100" cy="75" r="64" fill="none" stroke="#6b7280" stroke-width="0.5"/></g><circle cx="100" cy="75" r="45" fill="none" stroke="#27272a" stroke-width="10"/><g><path d="M 140 75 C 140 55, 125 50, 125 50 L 75 50 C 65 50, 60 55, 60 75" fill="none" stroke="#4a4a4a" stroke-width="5"/><rect x="70" y="52" width="60" height="8" fill="#6b7280" /><path d="M 75 50 L 75 52 M 85 50 L 85 52 M 95 50 L 95 52 M 105 50 L 105 52 M 115 50 L 115 52 M 125 50 L 125 52" stroke="white" stroke-width="0.5"/></g><rect x="98" y="25" width="4" height="10" fill="white" /></svg>`
+            },
+            {
+                name: "Super South Speedway",
+                country: "🇮🇹",
+                htmlFile: "sss.html",
+                svg: `<svg viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="150" fill="#16a34a"/><rect x="0" y="0" width="200" height="5" fill="#60a5fa"/><rect x="0" y="5" width="200" height="5" fill="#fde68a"/><path d="M 30 110 L 170 110 A 10 10 0 0 0 180 100 L 180 50 A 10 10 0 0 0 170 40 L 130 40 C 110 40 110 20 90 20 L 50 20 A 10 10 0 0 0 40 30 L 20 50 L 20 90 A 10 10 0 0 0 30 100 L 30 110 Z" fill="none" stroke="#27272a" stroke-width="10"/><g><path d="M165 105 Q 160 100 155 95 L 45 95 Q 40 100 35 105" fill="none" stroke="#4a4a4a" stroke-width="5"/><rect x="45" y="85" width="110" height="8" fill="#6b7280" /><path d="M 50 85 L 50 93 M 60 85 L 60 93 M 70 85 L 70 93 M 80 85 L 80 93 M 90 85 L 90 93 M 100 85 L 100 93 M 110 85 L 110 93 M 120 85 L 120 93 M 130 85 L 130 93 M 140 85 L 140 93 M 150 85 L 150 93" stroke="white" stroke-width="0.5"/></g><rect x="98" y="105" width="4" height="10" fill="white" /><g><rect x="30" y="120" width="140" height="8" fill="#a1a1aa" /><path d="M 30 121 L 170 121 M 30 123 L 170 123 M 30 125 L 170 125 M 30 127 L 170 127" stroke="#6b7280" stroke-width="0.5" /></g></svg>`
+            },
+            {
+                name: "Autodromo El Diablo",
+                country: "🇲🇽",
+                htmlFile: "autodromoeldiablo.html",
+                svg: `<svg viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="150" fill="#16a34a"/><path d="M 20 125 L 180 125 L 180 90 A 15 15 0 0 0 165 75 L 140 75 L 110 45 L 140 15 L 80 15 L 50 45 L 80 75 L 35 75 A 15 15 0 0 0 20 90 L 20 125 Z" fill="none" stroke="#27272a" stroke-width="10"/><g><path d="M165,120 C160,120 160,115 155,115 L 45,115 C 40,115 40,120 35,120" fill="none" stroke="#4a4a4a" stroke-width="5"/><rect x="45" y="105" width="110" height="8" fill="#6b7280" /><path d="M 50 105 L 50 113 M 60 105 L 60 113 M 70 105 L 70 113 M 80 105 L 80 113 M 90 105 L 90 113 M 100 105 L 100 113 M 110 105 L 110 113 M 120 105 L 120 113 M 130 105 L 130 113 M 140 105 L 140 113 M 150 105 L 150 113" stroke="white" stroke-width="0.5"/></g><rect x="98" y="120" width="4" height="10" fill="white" /><g><rect x="20" y="5" width="160" height="8" fill="#a1a1aa"/><path d="M 20 6 L 180 6 M 20 8 L 180 8 M 20 10 L 180 10 M 20 12 L 180 12" stroke="#6b7280" stroke-width="0.5"/></g></svg>`
+            },
+             {
+                name: "Tokyo Island Street Circuit",
+                country: "🇯🇵",
+                htmlFile: "tokyoislandstreetcircuit.html",
+                svg: `<svg viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="150" fill="#60a5fa"/><rect x="10" y="10" width="180" height="130" fill="#16a34a" rx="15"/><g fill="#a1a1aa" stroke="#6b7280"><rect x="80" y="20" width="40" height="15" /><rect x="145" y="95" width="20" height="10" /><rect x="45" y="55" width="15" height="15" /><rect x="40" y="85" width="20" height="20" /><rect x="140" y="45" width="25" height="25" /></g><path d="M 30 130 L 30 40 L 70 40 L 70 80 L 130 80 L 130 40 L 170 40 L 170 130 Z" fill="none" stroke="#27272a" stroke-width="10"/><g><path d="M 165 125 C 160 125, 160 120, 155 120 L 45 120 C 40 120, 40 125, 35 125" fill="none" stroke="#4a4a4a" stroke-width="5"/><rect x="45" y="110" width="110" height="8" fill="#6b7280" /><path d="M 50 110 L 50 118 M 60 110 L 60 118 M 70 110 L 70 118 M 80 110 L 80 118 M 90 110 L 90 118 M 100 110 L 100 118 M 110 110 L 110 118 M 120 110 L 120 118 M 130 110 L 130 118 M 140 110 L 140 118 M 150 110 L 150 118" stroke="white" stroke-width="0.5"/></g><rect x="98" y="125" width="4" height="10" fill="white" /></svg>`
+            },
+            {
+                name: "Moscow Old Airport Circut",
+                country: "🇷🇺",
+                htmlFile: "moscowoldairportcircut.html",
+                svg: `<svg viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="150" fill="#16a34a"/><rect x="0" y="30" width="200" height="80" fill="#a1a1aa" /><rect x="0" y="10" width="200" height="20" fill="#6b7280" /><g stroke="white" fill="white"><rect x="10" y="11" width="180" height="1" /><rect x="10" y="28" width="180" height="1" /><path d="M 30 20 L 170 20" stroke="white" stroke-width="1" stroke-dasharray="10 5"/><g stroke-width="1.5"><path d="M 20 12 L 20 18 M 23 12 L 23 18" /><path d="M 180 12 L 180 18 M 177 12 L 177 18" /></g><rect x="50" y="16" width="15" height="4" /><rect x="135" y="16" width="15" height="4" /></g><g stroke="yellow" stroke-width="2"><path d="M 30 15 L 38 25 M 38 15 L 30 25"/><path d="M 162 15 L 170 25 M 170 15 L 162 25"/></g><circle cx="10" cy="134" r="8" fill="#a1a1aa" stroke="#6b7280" /><rect x="7" y="120" width="6" height="14" fill="#a1a1aa" stroke="#6b7280" /><path d="M 30 120 L 170 120 A 10 10 0 0 0 180 110 L 180 40 A 10 10 0 0 0 170 30 L 30 30 A 10 10 0 0 0 20 40 L 20 110 A 10 10 0 0 0 30 120 Z" fill="none" stroke="#27272a" stroke-width="10"/><g><path d="M 40 110 L 160 110" fill="none" stroke="#4a4a4a" stroke-width="5"/><path d="M 35 108 C 35 95, 45 95, 45 95 L 155 95 C 165 95, 165 108, 165 108 Z" fill="#a1a1aa" stroke="#6b7280" stroke-width="1"/></g><rect x="98" y="115" width="4" height="10" fill="white" /><g><rect x="20" y="130" width="160" height="8" fill="#a1a1aa" /><path d="M 20 131 L 180 131 M 20 133 L 180 133 M 20 135 L 180 135 M 20 137 L 180 137" stroke="#6b7280" stroke-width="0.5" /></g></svg>`
+            }
+        ];
+
+        let currentIndex = 0;
+        let selectedTrackIndex = null;
+
+        function renderTrack() {
+            if (tracks.length === 0) {
+                trackPreview.innerHTML = '<p class="text-2xl">No Tracks Available</p>';
+                trackName.textContent = '';
+                return;
+            }
+            const track = tracks[currentIndex];
+            const availableTracks = ["Ring LeaderDrome", "Super South Speedway"];
+
+            trackName.textContent = track.name;
+            trackCountry.textContent = track.country;
+
+            let previewHTML = `<div class="relative w-full h-full">${track.svg}</div>`;
+            if (!availableTracks.includes(track.name)) {
+                previewHTML = `<div class="relative w-full h-full">${track.svg}<div class="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center"><p class="text-3xl text-yellow-400 border-4 border-yellow-400 p-4">WORK IN PROGRESS</p></div></div>`;
+                selectBtn.textContent = 'UNAVAILABLE';
+                selectBtn.disabled = true;
+                selectBtn.classList.remove('hover:bg-green-500');
+                selectBtn.classList.add('bg-gray-500', 'border-gray-700');
+            } else {
+                 if (currentIndex === selectedTrackIndex) {
+                    selectBtn.textContent = 'SELECTED!';
+                    selectBtn.disabled = true;
+                    selectBtn.classList.remove('hover:bg-green-500');
+                    selectBtn.classList.add('bg-gray-500', 'border-gray-700');
+                } else {
+                    selectBtn.textContent = 'SELECT TRACK';
+                    selectBtn.disabled = false;
+                    selectBtn.classList.add('hover:bg-green-500');
+                    selectBtn.classList.remove('bg-gray-500', 'border-gray-700');
+                }
+            }
+            trackPreview.innerHTML = previewHTML;
+        }
+
+        prevBtn.addEventListener('click', () => {
+            if (tracks.length === 0) return;
+            currentIndex = (currentIndex - 1 + tracks.length) % tracks.length;
+            renderTrack();
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (tracks.length === 0) return;
+            currentIndex = (currentIndex + 1) % tracks.length;
+            renderTrack();
+        });
+
+        selectBtn.addEventListener('click', () => {
+            if (tracks.length === 0) return;
+            const selectedTrack = tracks[currentIndex];
+            const availableTracks = ["Ring LeaderDrome", "Super South Speedway"];
+            if (!availableTracks.includes(selectedTrack.name)) return;
+
+            selectedTrackIndex = currentIndex;
+            localStorage.setItem('selectedTrackSVG', selectedTrack.svg);
+            renderTrack();
+
+            window.location.href = selectedTrack.htmlFile;
+        });
+
+        backBtn.addEventListener('click', () => {
+            window.location.href = 'garage.html';
+        });
+
+        renderTrack();
+    </script>
+
+</body>
+</html>

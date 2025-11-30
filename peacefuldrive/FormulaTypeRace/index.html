@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FormulaTypeRace</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+
+        body {
+            background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('https://www.understood.org/_next/image?url=https%3A%2F%2Fcdn-images.understood.org%2Fp0qf7j048i0q%2FYe7XLtAQbu92riigoreTz%2F300f1f0104786bc5eda435cf8bf4e3e1%2FG1352603244.png&w=3840&q=75');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            color: #ffffff;
+            font-family: 'Orbitron', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .game-container {
+            width: 800px;
+            text-align: center;
+        }
+
+        .shake {
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+
+        #start-screen,
+        #game-screen,
+        #results-screen {
+            padding: 2em;
+            border: 2px solid #00ffff;
+            border-radius: 10px;
+            background-color: rgba(42, 42, 42, 0.8);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        button, .button-link {
+            background-color: #00ffff;
+            color: #1a1a1a;
+            border: none;
+            padding: 1em 2em;
+            font-size: 1.2em;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s, color 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            margin: 0.5em;
+        }
+
+        button:hover, .button-link:hover {
+            background-color: #1a1a1a;
+            color: #00ffff;
+            border: 2px solid #00ffff;
+        }
+
+        button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+
+        #quote-display {
+            font-size: 1.5em;
+            margin-bottom: 1em;
+            line-height: 1.5;
+            max-height: 200px; /* Added for scrolling */
+            overflow-y: auto; /* Added for scrolling */
+        }
+
+        .word {
+            margin: 0 0.2em;
+        }
+
+        .current-word {
+            background-color: #00ffff;
+            color: #1a1a1a;
+            padding: 0.2em 0.4em;
+            border-radius: 5px;
+        }
+        
+        .word-incorrect {
+            color: #ff00ff;
+        }
+
+        #text-input {
+            width: 100%;
+            padding: 0.5em;
+            font-size: 1.2em;
+            background-color: rgba(26, 26, 26, 0.8);
+            color: #00ffff;
+            border: 2px solid #00ffff;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        
+        .input-error {
+            border-color: #ff00ff;
+        }
+
+        #stats, #level-display {
+            margin-top: 1em;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div id="start-screen">
+            <h1>FormulaTypeRace</h1>
+            <div id="level-display"></div>
+            <p>Get ready to race! Type the words and press Enter.</p>
+            <button id="start-button">Start Race</button>
+            <a href="leaderboard.html" class="button-link">Leaderboard</a>
+        </div>
+
+        <div id="game-screen" class="hidden">
+            <div id="quote-display"></div>
+            <input type="text" id="text-input" autofocus>
+            <div id="stats"></div>
+            <button id="homepage-button" class="button-link">Homepage</button>
+        </div>
+
+        <div id="results-screen" class="hidden">
+            <h2>Race Finished!</h2>
+            <div id="results"></div>
+            <button id="play-again-button">Play Again</button>
+            <a href="index.html" class="button-link">Homepage</a>
+        </div>
+    </div>
+
+    <script>
+        const gameContainer = document.querySelector('.game-container');
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const resultsScreen = document.getElementById('results-screen');
+
+        const startButton = document.getElementById('start-button');
+        const playAgainButton = document.getElementById('play-again-button');
+        const homepageButton = document.getElementById('homepage-button');
+
+        const quoteDisplay = document.getElementById('quote-display');
+        const textInput = document.getElementById('text-input');
+        const stats = document.getElementById('stats');
+        const results = document.getElementById('results');
+        const levelDisplay = document.getElementById('level-display');
+
+        let words = [];
+        let currentWords = [];
+        let currentWordIndex = 0;
+        let correctTypedWords = 0;
+        let startTime;
+        let interval;
+
+        function updateLevel() {
+            const sessionCount = parseInt(localStorage.getItem('formulaTypeRaceSessionCount')) || 0;
+            const level = Math.floor(sessionCount / 30) + 1;
+            levelDisplay.innerText = `Level: ${level}`;
+        }
+
+        function generateRandomWords() {
+            const randomWords = [];
+            for (let i = 0; i < 30; i++) {
+                const randomIndex = Math.floor(Math.random() * words.length);
+                randomWords.push(words[randomIndex]);
+            }
+            return randomWords;
+        }
+
+        function startGame() {
+            startScreen.classList.add('hidden');
+            resultsScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+
+            currentWords = generateRandomWords();
+            currentWordIndex = 0;
+            correctTypedWords = 0;
+            
+            quoteDisplay.innerHTML = '';
+            currentWords.forEach((word, index) => {
+                const wordSpan = document.createElement('span');
+                wordSpan.innerText = word;
+                wordSpan.classList.add('word');
+                if (index === 0) {
+                    wordSpan.classList.add('current-word');
+                }
+                quoteDisplay.appendChild(wordSpan);
+            });
+
+            const firstWord = quoteDisplay.querySelector('.current-word');
+            if(firstWord) {
+                firstWord.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            textInput.value = '';
+            textInput.focus();
+
+            startTime = new Date();
+            interval = setInterval(updateStats, 1000);
+        }
+
+        function updateStats() {
+            const elapsedTime = (new Date() - startTime) / 1000;
+            const wpm = Math.round((correctTypedWords / elapsedTime) * 60);
+            stats.innerText = `WPM: ${wpm}`;
+        }
+
+        function handleWordTyped(e) {
+            if (e.key === 'Enter') {
+                const typedWord = textInput.value.trim();
+                const wordSpans = quoteDisplay.querySelectorAll('.word');
+                const currentWordSpan = wordSpans[currentWordIndex];
+                const currentWord = currentWords[currentWordIndex];
+
+                if (typedWord === currentWord) {
+                    correctTypedWords++;
+                    currentWordSpan.classList.remove('current-word', 'word-incorrect');
+                    
+                    currentWordIndex++;
+
+                    if (currentWordIndex >= currentWords.length) {
+                        endGame();
+                        return;
+                    }
+
+                    const nextWordSpan = wordSpans[currentWordIndex];
+                    nextWordSpan.classList.add('current-word');
+                    nextWordSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    
+                    textInput.value = '';
+                    textInput.classList.remove('input-error');
+                } else {
+                    textInput.classList.add('input-error');
+                    currentWordSpan.classList.add('word-incorrect');
+                    gameContainer.classList.add('shake');
+                    setTimeout(() => {
+                        gameContainer.classList.remove('shake');
+                    }, 500);
+                }
+            }
+        }
+
+        function endGame() {
+            clearInterval(interval);
+            const elapsedTime = (new Date() - startTime) / 1000;
+            const wpm = Math.round((correctTypedWords / elapsedTime) * 60);
+            
+            const accuracy = Math.round((correctTypedWords / currentWords.length) * 100);
+
+            results.innerHTML = `WPM: ${wpm}<br>Accuracy: ${accuracy}%<br>Time: ${elapsedTime.toFixed(2)}s`;
+            
+            const scores = JSON.parse(localStorage.getItem('formulaTypeRaceScores')) || [];
+            const newScore = {
+                wpm: wpm,
+                accuracy: accuracy,
+                date: new Date().toISOString()
+            };
+            scores.push(newScore);
+            localStorage.setItem('formulaTypeRaceScores', JSON.stringify(scores));
+
+            const sessionCount = parseInt(localStorage.getItem('formulaTypeRaceSessionCount')) || 0;
+            localStorage.setItem('formulaTypeRaceSessionCount', sessionCount + 1);
+            updateLevel();
+
+            gameScreen.classList.add('hidden');
+            resultsScreen.classList.remove('hidden');
+        }
+
+        function goHome() {
+            clearInterval(interval);
+            gameScreen.classList.add('hidden');
+            resultsScreen.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+        }
+
+        fetch('https://raw.githubusercontent.com/dwyl/english-words/master/words_alpha.txt')
+            .then(response => response.text())
+            .then(data => {
+                words = data.split('\n').map(word => word.trim()).filter(word => word.length > 2);
+                startButton.disabled = false;
+            });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateLevel();
+            startButton.disabled = true;
+        });
+        
+        startButton.addEventListener('click', startGame);
+        playAgainButton.addEventListener('click', startGame);
+        homepageButton.addEventListener('click', goHome);
+        textInput.addEventListener('keydown', handleWordTyped);
+
+    </script>
+</body>
+</html>

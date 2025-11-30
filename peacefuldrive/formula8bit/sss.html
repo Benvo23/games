@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formula 8bit - Super South Speedway</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #1a1a1a;
+            color: white;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        canvas {
+            background-color: #16a34a;
+            display: block;
+        }
+        .hud {
+            text-shadow: 2px 2px #000;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="raceTrack"></canvas>
+    
+    <div class="absolute top-4 left-4 text-2xl hud space-y-2">
+        <p>SPEED: <span id="speed-display">0</span> KPH</p>
+        <p>LAP: <span id="lap-display">0</span></p>
+        <p>TIME: <span id="time-display">00:00:000</span></p>
+    </div>
+
+    <div class="absolute bottom-4 left-4 text-2xl hud">
+        <p>BEST: <span id="best-time-display">--:--:---</span></p>
+    </div>
+    
+    <a href="track.html" class="absolute top-4 right-4 px-6 py-3 bg-blue-600 text-white border-4 border-blue-800 hover:bg-blue-500 transition-colors hud">
+        BACK
+    </a>
+    
+    <div id="notification" class="hidden absolute bottom-10 w-full flex justify-center px-4">
+        <div class="bg-red-600 text-white font-bold rounded-lg border-2 border-red-800 px-4 py-2" style="text-shadow: 1px 1px #000;">
+            <p id="notification-text"></p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('raceTrack');
+        const ctx = canvas.getContext('2d');
+        const collisionCanvas = document.createElement('canvas');
+        const collisionCtx = collisionCanvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        collisionCanvas.width = canvas.width;
+        collisionCanvas.height = canvas.height;
+        
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            collisionCanvas.width = canvas.width;
+            collisionCanvas.height = canvas.height;
+            setCarStartPosition();
+            drawTrackLayout(collisionCtx, true); // Redraw collision map on resize
+        });
+
+        const hudSpeed = document.getElementById('speed-display');
+        const hudLap = document.getElementById('lap-display');
+        const hudTime = document.getElementById('time-display');
+        const hudBestTime = document.getElementById('best-time-display');
+        const notification = document.getElementById('notification');
+        const notificationText = document.getElementById('notification-text');
+
+        const car = {
+            x: 0, y: 0, width: 70, height: 30, speed: 0, acceleration: 0.2,
+            maxSpeed: 10, friction: 0.97, angle: Math.PI, turnSpeed: 0.05,
+            img: new Image(), onValidSurface: true
+        };
+
+        const keys = {
+            arrowup: false, arrowdown: false, arrowleft: false, arrowright: false,
+            w: false, s: false, a: false, d: false
+        };
+        
+        let scaleX, scaleY;
+        let trackLimitsWarnings = 0;
+        let notificationTimeout;
+        
+        let lapCount = 0, lapStartTime = 0, bestLapTime = 0, currentLapTime = 0;
+        let hasCrossedHalfway = false;
+        let isLapTimeValid = true;
+
+        function setCarStartPosition() {
+            scaleX = canvas.width / 200;
+            scaleY = canvas.height / 150;
+            car.x = 100 * scaleX;
+            car.y = 110 * scaleY; // Start on the S/F line
+            car.angle = Math.PI; // Start facing left
+            car.speed = 0;
+            
+            lapCount = 0;
+            lapStartTime = 0;
+            currentLapTime = 0;
+            hasCrossedHalfway = false;
+            isLapTimeValid = true;
+            hudLap.textContent = lapCount;
+            hudTime.textContent = formatTime(0);
+        }
+
+        const selectedCarSVG = localStorage.getItem('selectedCarSVG');
+        if (selectedCarSVG) {
+            car.img.src = 'data:image/svg+xml;base64,' + btoa(selectedCarSVG);
+        } else {
+            const fallbackSVG = `<svg viewBox="0 0 70 30" xmlns="http://www.w3.org/2000/svg"><rect width="70" height="30" fill="red"/><text x="17" y="18" font-family="'Press Start 2P'" font-size="6" fill="white" text-anchor="middle">NO</text><text x="53" y="18" font-family="'Press Start 2P'" font-size="6" fill="white" text-anchor="middle">CAR</text></svg>`;
+            car.img.src = 'data:image/svg+xml;base64,' + btoa(fallbackSVG);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = true;
+        });
+        document.addEventListener('keyup', (e) => {
+            if (keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = false;
+        });
+        
+        function formatTime(ms) {
+            if (ms === 0 && lapCount < 1 && bestLapTime === 0) return "00:00:000";
+            if (ms === 0) return "--:--:---";
+            const m = Math.floor(ms / 60000);
+            const s = Math.floor((ms % 60000) / 1000);
+            const milli = Math.floor(ms % 1000);
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}:${milli.toString().padStart(3, '0')}`;
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function handleTrackLimits() {
+            trackLimitsWarnings++;
+            isLapTimeValid = false;
+            notificationText.textContent = `Track Limits Exceeded! (x${trackLimitsWarnings})`;
+            notification.classList.remove('hidden');
+
+            clearTimeout(notificationTimeout);
+            notificationTimeout = setTimeout(() => { notification.classList.add('hidden'); }, 2000);
+        }
+        
+        function isPointOnValidSurface(x, y) {
+            if (x < 0 || x >= collisionCanvas.width || y < 0 || y >= collisionCanvas.height) return false;
+            const pixelData = collisionCtx.getImageData(Math.round(x), Math.round(y), 1, 1).data;
+            return pixelData[0] > 128; // Check if the pixel is white (track)
+        }
+
+        function update() {
+            if (keys.arrowup || keys.w) {
+                if (lapStartTime === 0 && car.speed >= 0) lapStartTime = performance.now();
+                car.speed += car.acceleration;
+            }
+            if (keys.arrowdown || keys.s) car.speed -= car.acceleration;
+
+            if (car.speed > car.maxSpeed) car.speed = car.maxSpeed;
+            if (car.speed < -0.5) car.speed = -0.5;
+
+            car.speed *= car.friction;
+            if (Math.abs(car.speed) < 0.1) car.speed = 0;
+
+            if (car.speed !== 0) {
+                const turnDirection = car.speed > 0 ? 1 : -1;
+                if (keys.arrowleft || keys.a) car.angle -= car.turnSpeed * turnDirection;
+                if (keys.arrowright || keys.d) car.angle += car.turnSpeed * turnDirection;
+            }
+           
+            const prevX = car.x;
+            const prevY = car.y;
+            car.x += car.speed * Math.cos(car.angle);
+            car.y += car.speed * Math.sin(car.angle);
+            
+            const cos = Math.cos(car.angle);
+            const sin = Math.sin(car.angle);
+            const w2 = car.width / 2.5; 
+            const h2 = car.height / 2.5;
+
+            const corners = [
+                { x: car.x + w2 * cos - h2 * sin, y: car.y + w2 * sin + h2 * cos },
+                { x: car.x + w2 * cos + h2 * sin, y: car.y + w2 * sin - h2 * cos },
+                { x: car.x - w2 * cos - h2 * sin, y: car.y - w2 * sin + h2 * cos },
+                { x: car.x - w2 * cos + h2 * sin, y: car.y - w2 * sin - h2 * cos }
+            ];
+            
+            let onSurface = false;
+            for(const corner of corners) {
+                if (isPointOnValidSurface(corner.x, corner.y)) {
+                    onSurface = true;
+                    break;
+                }
+            }
+
+            if (!onSurface && car.onValidSurface) {
+                handleTrackLimits();
+            }
+            car.onValidSurface = onSurface;
+
+            const noseX = car.x + (car.width / 2.2) * Math.cos(car.angle);
+            const noseY = car.y + (car.width / 2.2) * Math.sin(car.angle);
+            
+            const grandstandX = 30 * scaleX;
+            const grandstandY = 120 * scaleY;
+            const grandstandWidth = 140 * scaleX;
+            const grandstandHeight = 8 * scaleY;
+            if(noseX > grandstandX && noseX < grandstandX + grandstandWidth && noseY > grandstandY && noseY < grandstandY + grandstandHeight) {
+                 car.x = prevX; car.y = prevY; car.speed = -car.speed * 0.7;
+            }
+
+            const pitX = 45 * scaleX;
+            const pitY = 85 * scaleY;
+            const pitWidth = 110 * scaleX;
+            const pitHeight = 8 * scaleY;
+             if(noseX > pitX && noseX < pitX + pitWidth && noseY > pitY && noseY < pitY + pitHeight) {
+                 car.x = prevX; car.y = prevY; car.speed = -car.speed * 0.7;
+            }
+
+            // Lap Timing Logic
+            if (lapStartTime > 0) currentLapTime = performance.now() - lapStartTime;
+            
+            const startFinishLineX = 100 * scaleX;
+            if (car.x < startFinishLineX && prevX >= startFinishLineX && car.y > 105 * scaleY && car.y < 115 * scaleY && hasCrossedHalfway) {
+                if (lapCount > 0 && isLapTimeValid) {
+                     if (bestLapTime === 0 || currentLapTime < bestLapTime) {
+                        bestLapTime = currentLapTime;
+                    }
+                }
+                lapCount++;
+                lapStartTime = performance.now();
+                hasCrossedHalfway = false;
+                isLapTimeValid = true;
+            }
+            
+            if (car.x > 150 * scaleX) { 
+                hasCrossedHalfway = true;
+            }
+
+            hudSpeed.textContent = Math.round(Math.abs(car.speed) * 20);
+            hudLap.textContent = lapCount;
+            if (isLapTimeValid) {
+                hudTime.textContent = formatTime(currentLapTime);
+            } else {
+                 hudTime.textContent = "INVALID";
+            }
+            hudBestTime.textContent = formatTime(bestLapTime);
+        }
+        
+        function drawTrackLayout(targetCtx, isForCollision) {
+            targetCtx.save();
+            targetCtx.scale(scaleX, scaleY);
+            
+            targetCtx.fillStyle = isForCollision ? 'black' : '#16a34a'; 
+            targetCtx.fillRect(0,0,200,150);
+
+            if (!isForCollision) {
+                targetCtx.fillStyle = '#60a5fa'; // Ocean
+                targetCtx.fillRect(0,0,200,5);
+                targetCtx.fillStyle = '#fde68a'; // Sand
+                targetCtx.fillRect(0,5,200,5);
+            }
+            
+            const trackPath = new Path2D("M 30 110 L 170 110 A 10 10 0 0 0 180 100 L 180 50 A 10 10 0 0 0 170 40 L 130 40 C 110 40 110 20 90 20 L 50 20 A 10 10 0 0 0 40 30 L 20 50 L 20 90 A 10 10 0 0 0 30 100 L 30 110 Z");
+            targetCtx.lineWidth = 10;
+            
+            if (isForCollision) {
+                targetCtx.strokeStyle = 'white';
+                targetCtx.stroke(trackPath);
+                targetCtx.fillStyle = 'black';
+                const p = new Path2D(trackPath);
+                p.rect(0,0,200,150);
+                targetCtx.fill(p, "evenodd");
+            } else {
+                targetCtx.strokeStyle = '#27272a';
+                targetCtx.stroke(trackPath);
+            }
+
+            const pitPath = new Path2D("M165 105 Q 160 100 155 95 L 45 95 Q 40 100 35 105");
+            targetCtx.lineWidth = 5;
+            targetCtx.strokeStyle = isForCollision ? 'white' : '#4a4a4a';
+            targetCtx.stroke(pitPath);
+             if(isForCollision) {
+                 targetCtx.fillStyle = 'white';
+                 targetCtx.fill(pitPath);
+            }
+            
+            if (!isForCollision) {
+                targetCtx.fillStyle = '#6b7280';
+                targetCtx.fillRect(45, 85, 110, 8);
+                targetCtx.fillStyle = '#a1a1aa';
+                targetCtx.fillRect(30, 120, 140, 8);
+                targetCtx.fillStyle = 'white';
+                targetCtx.fillRect(98, 105, 4, 10);
+            }
+            targetCtx.restore();
+        }
+
+
+        function draw() {
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            drawTrackLayout(ctx, false);
+
+            ctx.save();
+            ctx.translate(car.x, car.y);
+            ctx.rotate(car.angle + Math.PI); // The car SVG faces left, add PI to align with physics angle 0 = right
+            ctx.drawImage(car.img, -car.width / 2, -car.height / 2, car.width, car.height);
+            ctx.restore();
+        }
+
+        // --- Initial Setup ---
+        setCarStartPosition();
+        drawTrackLayout(collisionCtx, true);
+        car.img.onload = gameLoop;
+
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Naval Fleet Command</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Black Ops One', cursive;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #001f3f, #003366, #004080); /* Ocean background */
+        }
+        .bonds-text {
+            color: #ffd700;
+            text-shadow: 0 0 10px #ffd700, 0 0 20px #b8860b;
+        }
+        .armory-item {
+            background-color: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            transition: background-color 0.2s;
+        }
+        .armory-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .armory-item button:disabled {
+            background-color: #4a5568;
+            cursor: not-allowed;
+            border-color: #2d3748;
+        }
+
+        /* Navy Style Buttons */
+        .btn {
+            display: block; /* Make anchor tags behave like block elements */
+            text-align: center;
+            border-radius: 2px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 3px solid rgba(0,0,0,0.4);
+            transition: all 0.1s ease-in-out;
+            text-decoration: none; /* Remove underline from links */
+        }
+        .btn:active {
+            transform: translateY(2px);
+            border-bottom-width: 1px;
+        }
+        .btn-secondary { background-color: #4A5568; color: #E0E0E0; border-color: #2d3748; }
+        .btn-secondary:hover { background-color: #718096; }
+        .btn-special { background-color: #D4AF37; color: #1a202c; border-color: #ab8c2c; }
+        .btn-special:hover { background-color: #e6c669; }
+    </style>
+</head>
+<body class="flex items-center justify-center h-screen m-0">
+
+    <div id="game-container" class="relative w-full h-full sm:w-[480px] sm:h-[800px] max-w-full max-h-full bg-black bg-opacity-50 rounded-lg shadow-2xl overflow-hidden border-4 border-gray-600">
+
+        <div id="armory-screen" class="absolute inset-0 flex flex-col items-center justify-center p-8">
+            <h2 class="text-5xl font-bold text-yellow-400 mb-6">ARMORY</h2>
+
+            <div class="absolute top-4 right-4 text-2xl font-bold bonds-text">
+                Bonds: <span id="bonds-balance-armory">0</span>
+            </div>
+
+            <div id="armory-items-container" class="w-full max-w-md space-y-4">
+                </div>
+
+            <a href="index.html" class="mt-8 btn btn-secondary font-bold py-2 px-6 text-xl shadow-lg">
+                Back to Menu
+            </a>
+        </div>
+
+    </div>
+
+    <script>
+        // UI Elements
+        const bondsBalanceArmory = document.getElementById('bonds-balance-armory');
+        const armoryItemsContainer = document.getElementById('armory-items-container');
+
+        // Armory Data
+        const ARMORY_DATA = {
+            airstrike: { name: 'Airstrike', cost: 250, description: 'Equip an emergency airstrike for your next mission.' },
+            torpedoes: { name: 'Torpedoes', cost: 100, description: 'Equip a high-damage torpedo salvo for your next mission.' },
+            missileStrike: { name: 'Missile Strike', cost: 400, description: 'Equip a devastating missile strike for your next mission.' },
+            shield: { name: 'Super Hull', cost: 150, description: 'Start your next mission with a temporary 10-second shield.' }
+        };
+
+        let warBonds = 0;
+        let preBoughtAbilities = [];
+
+        /**
+         * Loads War Bonds and purchased abilities from localStorage.
+         */
+        function loadData() {
+            const savedBonds = localStorage.getItem('navalFleetCommandBonds');
+            warBonds = savedBonds ? parseInt(savedBonds, 10) : 0;
+
+            const savedAbilities = localStorage.getItem('navalFleetCommandAbilities');
+            preBoughtAbilities = savedAbilities ? JSON.parse(savedAbilities) : [];
+        }
+
+        /**
+         * Saves the current War Bonds and purchased abilities to localStorage.
+         */
+        function saveData() {
+            localStorage.setItem('navalFleetCommandBonds', warBonds);
+            localStorage.setItem('navalFleetCommandAbilities', JSON.stringify(preBoughtAbilities));
+        }
+
+        /**
+         * Updates the War Bonds display on the screen.
+         */
+        function updateBondsDisplay() {
+            bondsBalanceArmory.textContent = warBonds;
+        }
+
+        /**
+         * Updates the state of all buy buttons (enabled, disabled, or "EQUIPPED").
+         */
+        function updateArmoryButtons() {
+            for (const [id, item] of Object.entries(ARMORY_DATA)) {
+                const btn = document.getElementById(`buy-${id}`);
+                if (btn) {
+                    btn.disabled = warBonds < item.cost || preBoughtAbilities.includes(id);
+                    if (preBoughtAbilities.includes(id)) {
+                        btn.textContent = 'EQUIPPED';
+                    } else {
+                        btn.textContent = `Buy (${item.cost})`;
+                    }
+                }
+            }
+        }
+
+        /**
+         * Handles the logic for buying an ability.
+         * @param {string} id The ID of the ability to buy.
+         * @param {number} cost The cost of the ability.
+         */
+        function buyAbility(id, cost) {
+            if (warBonds >= cost && !preBoughtAbilities.includes(id)) {
+                warBonds -= cost;
+                preBoughtAbilities.push(id);
+
+                saveData();
+                updateBondsDisplay();
+                updateArmoryButtons();
+            }
+        }
+
+        /**
+         * Creates the HTML for each armory item and adds it to the page.
+         */
+        function populateArmory() {
+            armoryItemsContainer.innerHTML = '';
+            for (const [id, item] of Object.entries(ARMORY_DATA)) {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'armory-item p-4 rounded-sm flex justify-between items-center';
+
+                itemEl.innerHTML = `
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-200">${item.name}</h3>
+                        <p class="text-sm text-gray-400">${item.description}</p>
+                    </div>
+                    <button id="buy-${id}" class="btn btn-special font-bold py-2 px-4">
+                        Buy (${item.cost})
+                    </button>
+                `;
+
+                armoryItemsContainer.appendChild(itemEl);
+
+                // Add event listener to the newly created button
+                document.getElementById(`buy-${id}`).addEventListener('click', () => buyAbility(id, item.cost));
+            }
+        }
+
+        // --- Initial Setup ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            updateBondsDisplay();
+            populateArmory();
+            updateArmoryButtons();
+        });
+
+    </script>
+</body>
+</html>
